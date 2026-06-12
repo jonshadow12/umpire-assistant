@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>⚾ Umpire Assistant v0.14</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#185FA5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Umpire">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+
+<style>
+/* ── PRINT / PDF EXPORT ── */
+@media print {
+  body { background: #fff !important; color: #111 !important; font-size: 12px; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  .app { padding: 0; max-width: 100%; }
+  .card, .inn-wrap, .cr-panel-print { border: 1px solid #ccc !important; background: #fff !important; break-inside: avoid; }
+  table { font-size: 11px; }
+  th, td { border: 1px solid #ddd !important; padding: 5px 6px !important; color: #111 !important; background: #fff !important; }
+  .print-section { margin-bottom: 14px; break-inside: avoid; }
+  .print-header { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .print-sub { font-size: 12px; color: #555; margin-bottom: 12px; }
+  .print-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+  .print-metric { border: 1px solid #ccc; border-radius: 6px; padding: 8px; text-align: center; }
+  .print-metric-lbl { font-size: 10px; color: #666; }
+  .print-metric-val { font-size: 18px; font-weight: 700; }
+  .print-score-row { display: flex; gap: 16px; margin-bottom: 12px; }
+  .print-score-card { flex: 1; border: 1px solid #ccc; border-radius: 6px; padding: 8px 12px; text-align: center; }
+  .print-score-name { font-size: 11px; color: #555; }
+  .print-score-runs { font-size: 32px; font-weight: 700; }
+  .print-cr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .print-note-item { border-bottom: 1px solid #eee; padding: 5px 0; font-size: 11px; }
+  .print-note-meta { color: #666; font-size: 10px; }
+}
+.print-only { display: none; }
+
+/* ── BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #f5f5f5;
+  --surface:  #ffffff;
+  --surface2: #f0f0f0;
+  --border:   #d8d8d8;
+  --border2:  #e4e4e4;
+  --text:     #1a1a1a;
+  --text2:    #555;
+  --text3:    #888;
+  --blue:     #185FA5;
+  --blue-bg:  #deeaf8;
+  --blue-bd:  #a8c8ed;
+  --blue-tx:  #0f4a85;
+  --green:    #2d6e20;
+  --green-bg: #d8f0d4;
+  --green-bd: #8ecb85;
+  --green-tx: #1e5016;
+  --red:      #b32020;
+  --red-bg:   #fde8e8;
+  --red-bd:   #f0a0a0;
+  --red-tx:   #8c1010;
+  --amber:    #7a4a00;
+  --amber-bg: #fef0d0;
+  --amber-bd: #e8c060;
+  --amber-tx: #6a3a00;
+  --radius:   10px;
+  --radius-sm:6px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.app { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+/* ── TOP BAR ── */
+.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.top-bar-title { font-size: 20px; font-weight: 700; }
+.top-bar-sub   { font-size: 12px; color: var(--text2); }
+.top-bar-actions { display: flex; gap: 8px; }
+
+/* ── TABS ── */
+.tab-bar { display: flex; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 14px; }
+.tab-btn { flex: 1; padding: 10px 4px; font-size: 13px; font-family: inherit; background: var(--surface2); border: none; border-right: 1px solid var(--border); color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: background .15s, color .15s; }
+.tab-btn:last-child { border-right: none; }
+.tab-btn.active { background: var(--blue-bg); color: var(--blue-tx); font-weight: 600; }
+.tab-btn:hover:not(.active) { background: #e8e8e8; }
+.pane { display: none; }
+.pane.active { display: block; }
+
+/* ── CARDS ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.section-lbl { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.field label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 3px; }
+input[type=text], input[type=number], select {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface2); color: var(--text); font-size: 13px; font-family: inherit;
+}
+.divider { border: none; border-top: 1px solid var(--border2); margin: 10px 0; }
+.check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.check-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+.check-row label { font-size: 13px; color: var(--text); cursor: pointer; }
+
+/* ── BUTTONS ── */
+button { border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: filter .1s; border: 1px solid var(--border); background: var(--surface2); color: var(--text); }
+button:hover:not(:disabled) { filter: brightness(.94); }
+button:active:not(:disabled) { transform: scale(.97); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--blue-bg);  border-color: var(--blue-bd);  color: var(--blue-tx);  font-weight: 600; }
+.btn-green   { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-tx); font-weight: 600; }
+.btn-red     { background: var(--red-bg);   border-color: var(--red-bd);   color: var(--red-tx);   font-weight: 600; }
+.btn-amber   { background: var(--amber-bg); border-color: var(--amber-bd); color: var(--amber-tx); font-weight: 600; }
+.btn-neutral { background: var(--surface2); border-color: var(--border);   color: var(--text2); }
+
+/* ── GAME TAB ── */
+.teams-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.team-card { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; text-align: center; transition: background .25s, border-color .25s; }
+.team-card.leading  { background: var(--green-bg); border-color: var(--green-bd); }
+.team-card.trailing { background: var(--red-bg);   border-color: var(--red-bd); }
+.team-lbl  { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+.team-card.leading  .team-lbl { color: var(--green-tx); }
+.team-card.trailing .team-lbl { color: var(--red-tx); }
+.team-runs { font-size: 36px; font-weight: 700; color: var(--text); }
+.team-card.leading  .team-runs { color: var(--green-tx); }
+.team-card.trailing .team-runs { color: var(--red-tx); }
+.vs { font-size: 13px; color: var(--text3); flex-shrink: 0; }
+.run-rule-banner { display: none; align-items: center; gap: 8px; background: var(--amber-bg); border: 1px solid var(--amber-bd); border-radius: var(--radius-sm); padding: 8px 14px; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: var(--amber-tx); }
+.run-rule-banner.show { display: flex; }
+.metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+.metric { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 10px; }
+.metric-lbl { font-size: 11px; color: var(--text2); margin-bottom: 1px; }
+.metric-val { font-size: 18px; font-weight: 600; color: var(--text); }
+.metric-val.ok     { color: var(--green); }
+.metric-val.warn   { color: var(--amber); }
+.metric-val.danger { color: var(--red); }
+.timer-big { font-size: 52px; font-weight: 700; letter-spacing: 2px; text-align: center; font-family: monospace; color: var(--text); margin: 6px 0; }
+.timer-big.warn   { color: var(--amber); }
+.timer-big.danger { color: var(--red); }
+.prog-bar  { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width 1s linear, background 1s; }
+.prog-lbl  { font-size: 10px; color: var(--text3); text-align: right; margin-bottom: 6px; }
+.btn-row   { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.cutoff-alert { display: none; align-items: center; gap: 8px; background: var(--red-bg); border: 1px solid var(--red-bd); border-radius: var(--radius-sm); padding: 9px 14px; margin-bottom: 12px; color: var(--red-tx); font-size: 13px; font-weight: 600; }
+.cutoff-alert.show { display: flex; }
+
+/* ── INNING TABLE ── */
+.inn-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--surface2); padding: 7px 5px; text-align: center; font-weight: 600; font-size: 10px; color: var(--text2); border-bottom: 1px solid var(--border); }
+td { padding: 6px 5px; text-align: center; border-bottom: 1px solid var(--border2); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tr.cur    td { background: var(--blue-bg); color: var(--blue-tx); }
+tr.locked td { color: var(--text3); font-style: italic; }
+.sc { display: flex; align-items: center; gap: 3px; justify-content: center; }
+.sc button { padding: 1px 7px; font-size: 14px; line-height: 1.3; }
+.sc span   { min-width: 18px; font-weight: 600; font-size: 13px; }
+
+/* ── CR PANEL ── */
+.cr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cr-team-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.cr-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
+.dot { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; }
+.dot.used { background: var(--amber-bg); border-color: var(--amber-bd); }
+.dot.last { background: var(--red-bg);   border-color: var(--red-bd); }
+.cr-rem { font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+.cr-rem.warn   { color: var(--amber); }
+.cr-rem.danger { color: var(--red); }
+.cr-btns { display: flex; gap: 6px; }
+.cr-btns button { padding: 4px 10px; font-size: 12px; }
+.cr-log { margin-top: 8px; font-size: 11px; color: var(--text2); max-height: 56px; overflow-y: auto; border-top: 1px solid var(--border2); padding-top: 6px; }
+
+/* ── CLICKER ── */
+.clicker-section { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.click-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.click-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.click-title { font-size: 14px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.click-title.balls   { color: var(--blue-tx); }
+.click-title.strikes { color: var(--red-tx); }
+.click-title.outs    { color: var(--green-tx); }
+.click-body { display: flex; align-items: center; gap: 16px; }
+.click-num { font-size: 80px; font-weight: 800; line-height: 1; font-family: monospace; min-width: 90px; text-align: center; transition: transform .07s; color: var(--text); }
+.click-num.pop { transform: scale(1.18); }
+.click-col { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.big-btn { padding: 16px; font-size: 24px; justify-content: center; border-radius: var(--radius); font-weight: 700; width: 100%; }
+.pip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pip { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; transition: background .12s; }
+.pip.ball-on   { background: var(--blue-bg);  border-color: var(--blue-bd); }
+.pip.strike-on { background: var(--red-bg);   border-color: var(--red-bd); }
+.pip.out-on    { background: var(--green-bg); border-color: var(--green-bd); }
+.out-diamonds { display: flex; gap: 10px; flex-wrap: wrap; }
+.diamond { width: 22px; height: 22px; border: 2px solid var(--border); transform: rotate(45deg); border-radius: 3px; background: transparent; transition: background .12s; }
+.diamond.on { background: var(--green-bg); border-color: var(--green-bd); }
+.click-actions { display: flex; justify-content: center; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+
+/* ── NOTES ── */
+.note-entry { display: flex; gap: 8px; margin-bottom: 10px; }
+.note-entry input { flex: 1; }
+.note-list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+.note-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: var(--surface2); border-radius: var(--radius-sm); font-size: 13px; }
+.note-meta { display: flex; flex-direction: column; gap: 1px; min-width: 72px; flex-shrink: 0; }
+.note-meta span { font-size: 10px; color: var(--text3); white-space: nowrap; }
+.note-text { flex: 1; line-height: 1.45; }
+.note-del { background: transparent; border: none; color: var(--text3); cursor: pointer; padding: 0; font-size: 15px; margin-left: auto; flex-shrink: 0; }
+.note-del:hover { color: var(--red); }
+.note-empty { font-size: 13px; color: var(--text3); font-style: italic; padding: 4px 2px; }
+.note-badge { display: none; background: var(--amber-bg); color: var(--amber-tx); border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 3px; }
+.sound-btn { font-size: 12px; padding: 6px 12px; }
+
+/* ── STATUS PILL ── */
+#g-status { font-size: 12px; padding: 3px 10px; border-radius: 20px; background: var(--surface2); color: var(--text2); }
+
+/* ── LEAGUE SELECTOR ── */
+.league-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.league-card { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s; }
+.league-card:hover { border-color: var(--blue-bd); background: var(--blue-bg); }
+.league-card.selected { border-color: var(--blue-bd); background: var(--blue-bg); }
+.league-card-info { display: flex; flex-direction: column; gap: 3px; }
+.league-card-name { font-size: 15px; font-weight: 600; color: var(--text); }
+.league-card.selected .league-card-name { color: var(--blue-tx); }
+.league-card-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.league-pill { font-size: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; color: var(--text2); }
+.league-card.selected .league-pill { background: var(--surface); border-color: var(--blue-bd); color: var(--blue-tx); }
+.league-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; transition: background .15s, border-color .15s; }
+.league-card.selected .league-check { background: var(--blue-bg); border-color: var(--blue-bd); color: var(--blue-tx); }
+.league-edit-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.league-edit-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ PRINT VIEW (hidden on screen) ══ -->
+<div class="print-only" id="print-view"></div>
+
+<!-- ══ LEAGUE SELECTOR ══ -->
+<div id="league-view">
+  <div class="top-bar">
+    <div>
+      <div class="top-bar-title">⚾ Umpire Assistant <span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:4px;">v0.14</span></div>
+      <div class="top-bar-sub">Select your league to begin</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-lbl">Choose a league</div>
+    <div class="league-grid" id="league-grid"></div>
+    <button class="btn-neutral" onclick="showAddLeague()" style="width:100%;justify-content:center;margin-bottom:0;">+ Add new league</button>
+  </div>
+
+  <!-- Add / Edit league panel -->
+  <div class="league-edit-panel" id="league-edit-panel" style="display:none;">
+    <div class="league-edit-title">
+      <span id="league-edit-title-text">New league</span>
+      <button class="btn-neutral" onclick="cancelEditLeague()" style="font-size:12px;padding:4px 10px;">Cancel</button>
+    </div>
+    <div class="grid2">
+      <div class="field" style="grid-column:1/-1"><label>League name</label><input type="text" id="le-name" placeholder="e.g. Monday Night Slo-Pitch"></div>
+      <div class="field"><label>Number of innings (3–10)</label>
+        <select id="le-inn">
+          <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+          <option value="6">6</option><option value="7">7</option><option value="8">8</option>
+          <option value="9" selected>9</option><option value="10">10</option>
+        </select>
+      </div>
+      <div class="field"><label>Time limit (min)</label><input type="number" id="le-limit" value="85" min="10" max="300"></div>
+      <div class="field"><label>Min per inning (expected)</label><input type="number" id="le-mpi" value="10" min="1" max="60"></div>
+      <div class="field"><label>No new inning after (min)</label><input type="number" id="le-cutoff" value="80" min="1" max="300"></div>
+      <div class="field"><label>Courtesy runners per team (1–10)</label>
+        <select id="le-cr">
+          <option value="0">None</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <div class="field"><label>Mercy rule — runs lead after 6 inn.</label><input type="number" id="le-mercy" value="6" min="1" max="30"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn-primary" onclick="saveLeague()" style="flex:1;justify-content:center;">✓ Save league</button>
+      <button class="btn-red" id="le-delete-btn" onclick="deleteLeague()" style="display:none;padding:8px 14px;">🗑 Delete</button>
+    </div>
+  </div>
+
+  <div style="margin-top:4px;">
+    <button class="btn-primary" id="btn-league-next" onclick="goToGameSetup()" style="width:100%;justify-content:center;padding:11px;" disabled>Continue to game setup →</button>
+  </div>
+</div>
+
+<!-- ══ SETUP ══ -->
+<div id="setup-view" style="display:none;">
+  <div class="top-bar">
+    <div>
+      <div class="top-bar-title" id="setup-league-name">Game Setup</div>
+      <div class="top-bar-sub" id="setup-league-sub">Configure your game</div>
+    </div>
+    <button class="btn-neutral" onclick="goToLeagueSelect()" style="font-size:12px;padding:6px 12px;">← Leagues</button>
+  </div>
+  <div class="card">
+    <div class="section-lbl">Teams</div>
+    <div class="grid2">
+      <div class="field"><label>Home team</label><input type="text" id="s-home" value="Home"></div>
+      <div class="field"><label>Away team</label><input type="text" id="s-away" value="Away"></div>
+    </div>
+    <hr class="divider">
+    <div class="section-lbl">Game rules <span style="font-weight:400;font-size:10px;color:var(--text3);margin-left:4px;">(pre-filled from league — adjust if needed)</span></div>
+    <div class="grid2">
+      <div class="field"><label>Innings</label>
+        <select id="s-inn">
+          <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+          <option value="6">6</option><option value="7">7</option><option value="8">8</option>
+          <option value="9" selected>9</option><option value="10">10</option>
+        </select>
+      </div>
+      <div class="field"><label>Time limit (min)</label><input type="number" id="s-limit" value="85" min="10" max="300"></div>
+      <div class="field"><label>Min per inning (expected)</label><input type="number" id="s-mpi" value="10" min="5" max="60"></div>
+      <div class="field"><label>Date</label><input type="text" id="s-date" value=""></div>
+    </div>
+    <hr class="divider">
+    <div class="section-lbl">Inning start cutoff</div>
+    <div class="check-row"><input type="checkbox" id="s-cutoff-en" checked onchange="toggleCutoffField()"><label for="s-cutoff-en">Enable inning start cutoff</label></div>
+    <div id="cutoff-wrap" class="grid2">
+      <div class="field"><label>No new inning after (min)</label><input type="number" id="s-cutoff" value="80" min="1" max="300"></div>
+      <div class="field" style="padding-top:18px;font-size:11px;color:var(--text3)">"Next inning" locks once this time passes.</div>
+    </div>
+    <hr class="divider">
+    <div class="section-lbl">Courtesy runners</div>
+    <div class="grid2">
+      <div class="field"><label>Runners per team</label>
+        <select id="s-cr">
+          <option value="0">None (disabled)</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <div class="field"><label>Reset each inning?</label>
+        <select id="s-cr-reset"><option value="no" selected>No — per game</option><option value="yes">Yes — per inning</option></select>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="section-lbl">Mercy rule</div>
+    <div class="grid2">
+      <div class="field"><label>Run lead triggers mercy (after 6 inn.)</label><input type="number" id="s-mercy" value="6" min="1" max="30"></div>
+      <div class="field" style="padding-top:18px;font-size:11px;color:var(--text3)">Banner + score cards highlight when this lead is reached.</div>
+    </div>
+    <button class="btn-primary" onclick="startGame()" style="width:100%;justify-content:center;padding:11px;margin-top:4px;">▶ Start game</button>
+  </div>
+</div>
+
+<!-- ══ GAME VIEW ══ -->
+<div id="game-view" style="display:none;">
+  <div class="top-bar no-print">
+    <div>
+      <div style="font-size:17px;font-weight:700;" id="g-title">Game</div>
+      <div style="font-size:11px;color:var(--text2);" id="g-sub"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="g-status">● Ready</span>
+    </div>
+  </div>
+
+  <div class="tab-bar no-print">
+    <button class="tab-btn active" id="tab-game"    onclick="switchTab('game')">📊 Game</button>
+    <button class="tab-btn"        id="tab-clicker" onclick="switchTab('clicker')">🖱 Clicker</button>
+    <button class="tab-btn"        id="tab-notes"   onclick="switchTab('notes')">📝 Notes <span class="note-badge" id="note-badge"></span></button>
+  </div>
+
+  <!-- GAME PANE -->
+  <div class="pane active" id="pane-game">
+    <div class="cutoff-alert no-print" id="cutoff-alert">⚠ Inning cutoff reached — finish this inning, then end the game.</div>
+    <div class="run-rule-banner no-print" id="run-rule-banner">🏆 <span id="run-rule-text"></span></div>
+
+    <div class="teams-row no-print">
+      <div class="team-card" id="card-away"><div class="team-lbl" id="lbl-away">Away</div><div class="team-runs" id="tot-away">0</div></div>
+      <div class="vs">vs</div>
+      <div class="team-card" id="card-home"><div class="team-lbl" id="lbl-home">Home</div><div class="team-runs" id="tot-home">0</div></div>
+    </div>
+
+    <div class="metrics no-print" style="grid-template-columns:repeat(5,1fr);">
+      <div class="metric"><div class="metric-lbl">Inning</div><div class="metric-val" id="m-inn">1</div></div>
+      <div class="metric"><div class="metric-lbl">Elapsed</div><div class="metric-val" id="m-el">0:00</div></div>
+      <div class="metric"><div class="metric-lbl">Remaining</div><div class="metric-val" id="m-rem">—</div></div>
+      <div class="metric"><div class="metric-lbl">Expected end</div><div class="metric-val" id="m-end" style="font-size:13px;padding-top:3px;">—</div></div>
+      <div class="metric"><div class="metric-lbl">Est. final inn.</div><div class="metric-val" id="m-final-inn" style="font-size:16px;padding-top:2px;">—</div></div>
+    </div>
+
+    <div class="card no-print">
+      <div class="section-lbl">Game clock</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <!-- Left: minute adjustment controls -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:2px;">Adjust</div>
+          <button class="btn-amber" onclick="adjustClock(1)"  style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Add 1 minute">+1m</button>
+          <button class="btn-amber" onclick="adjustClock(-1)" style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Subtract 1 minute">−1m</button>
+        </div>
+        <!-- Right: clock -->
+        <div style="flex:1;text-align:right;">
+          <div class="timer-big" id="g-clock" style="margin:0;">0:00:00</div>
+        </div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="pf-game" style="width:0%;background:#3B6D11;"></div></div>
+      <div class="prog-lbl">Game time</div>
+      <div id="cutoff-prog-wrap" style="display:none;">
+        <div class="prog-bar"><div class="prog-fill" id="pf-cutoff" style="width:0%;background:#854F0B;"></div></div>
+        <div class="prog-lbl">Inning cutoff</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-green"   id="btn-start" onclick="toggleTimer()">▶ Start</button>
+        <button class="btn-primary" id="btn-next"  onclick="nextInning()">→ Next inning</button>
+        <button class="btn-red"     id="btn-end"   onclick="endGame()">⚑ End game</button>
+      </div>
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn-neutral" id="btn-undo-inn" onclick="undoInning()" style="font-size:12px;" disabled>↩ Undo last inning</button>
+        <button class="btn-neutral" id="btn-undo-end" onclick="undoEndGame()" style="font-size:12px;display:none;">↩ Undo end game</button>
+      </div>
+    </div>
+
+    <div class="card no-print" id="cr-panel" style="display:none;">
+      <div class="section-lbl">Courtesy runners</div>
+      <div class="cr-grid">
+        <div>
+          <div class="cr-team-name" id="cr-lbl-away">Away</div>
+          <div class="cr-dots" id="cr-dots-away"></div>
+          <div class="cr-rem" id="cr-rem-away"></div>
+          <div class="cr-btns">
+            <button class="btn-amber" onclick="useCR('away')" id="cr-use-away">🏃 Use</button>
+            <button class="btn-neutral" onclick="undoCR('away')">↩</button>
+          </div>
+        </div>
+        <div>
+          <div class="cr-team-name" id="cr-lbl-home">Home</div>
+          <div class="cr-dots" id="cr-dots-home"></div>
+          <div class="cr-rem" id="cr-rem-home"></div>
+          <div class="cr-btns">
+            <button class="btn-amber" onclick="useCR('home')" id="cr-use-home">🏃 Use</button>
+            <button class="btn-neutral" onclick="undoCR('home')">↩</button>
+          </div>
+        </div>
+      </div>
+      <div class="cr-log" id="cr-log"></div>
+    </div>
+
+    <div class="inn-wrap">
+      <table>
+        <thead><tr><th>Inn.</th><th id="th-away">Away</th><th id="th-home">Home</th><th>Duration</th><th>Expected</th><th>+/−</th></tr></thead>
+        <tbody id="inn-body"></tbody>
+      </table>
+    </div>
+
+    <div class="btn-row no-print" style="margin-bottom:12px;">
+      <button class="btn-primary" onclick="exportPDF()">⬇ Export PDF</button>
+      <button class="btn-neutral" onclick="resetGame()" style="font-size:12px;">↺ Reset / new game</button>
+    </div>
+  </div>
+
+  <!-- CLICKER PANE -->
+  <div class="pane no-print" id="pane-clicker">
+    <div class="clicker-section">
+      <div class="click-card">
+        <div class="click-header"><span class="click-title balls">Balls</span><div class="pip-row" id="pip-ball"></div></div>
+        <div class="click-body">
+          <div class="click-num" id="cn-ball">0</div>
+          <div class="click-col">
+            <button class="big-btn btn-primary" onclick="cInc('ball')">+</button>
+            <button class="big-btn btn-neutral" onclick="cDec('ball')">−</button>
+          </div>
+        </div>
+      </div>
+      <div class="click-card">
+        <div class="click-header"><span class="click-title strikes">Strikes</span><div class="pip-row" id="pip-strike"></div></div>
+        <div class="click-body">
+          <div class="click-num" id="cn-strike">0</div>
+          <div class="click-col">
+            <button class="big-btn btn-red" onclick="cInc('strike')">+</button>
+            <button class="big-btn btn-neutral" onclick="cDec('strike')">−</button>
+          </div>
+        </div>
+      </div>
+      <div class="click-card">
+        <div class="click-header"><span class="click-title outs">Outs</span><div class="out-diamonds" id="out-diamonds"></div></div>
+        <div class="click-body">
+          <div class="click-num" id="cn-out">0</div>
+          <div class="click-col">
+            <button class="big-btn btn-green" onclick="cInc('out')">+</button>
+            <button class="big-btn btn-neutral" onclick="cDec('out')">−</button>
+          </div>
+        </div>
+      </div>
+      <div class="click-actions">
+        <button class="btn-neutral" onclick="resetBatter()">↺ New batter</button>
+        <button class="btn-red" onclick="resetAllClicker()">✕ Reset all</button>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="section-lbl">Click sound</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="snd-1" class="btn-primary sound-btn" onclick="setSound(1)">1 · Classic</button>
+          <button id="snd-2" class="btn-neutral sound-btn" onclick="setSound(2)">2 · Soft tap</button>
+          <button id="snd-3" class="btn-neutral sound-btn" onclick="setSound(3)">3 · Mechanical</button>
+          <button id="snd-4" class="btn-neutral sound-btn" onclick="setSound(4)">4 · Beep</button>
+          <button id="snd-5" class="btn-neutral sound-btn" onclick="setSound(5)">5 · Double</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;">Tap a sound to preview it. Your choice applies to all +/− buttons.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES PANE -->
+  <div class="pane no-print" id="pane-notes">
+    <div class="card" style="margin-top:4px;">
+      <div class="section-lbl">Game notes</div>
+      <div class="note-entry">
+        <input type="text" id="note-input" placeholder="Add a note…" onkeydown="if(event.key==='Enter')addNote()">
+        <button class="btn-primary" onclick="addNote()">+ Add</button>
+      </div>
+      <div class="note-list" id="note-list">
+        <div class="note-empty">No notes yet — add one above.</div>
+      </div>
+    </div>
+  </div>
+</div><!-- /game-view -->
+
+</div><!-- /app -->
+
+<script>
+// ── Set today's date ──
+document.getElementById('s-date').value = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+// ── Audio ──
+let _actx=null;
+let _soundChoice=1; // 1–5
+function getCtx(){if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();return _actx;}
+
+function playClick(up){
+  try{
+    const ctx=getCtx();
+    const t=ctx.currentTime;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+
+    switch(_soundChoice){
+      case 1: // Classic clicker — sharp square blip
+        o.type='square';
+        if(up){o.frequency.setValueAtTime(1000,t);o.frequency.exponentialRampToValueAtTime(600,t+.04);g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.07);}
+        else{o.frequency.setValueAtTime(450,t);o.frequency.exponentialRampToValueAtTime(220,t+.06);g.gain.setValueAtTime(.1,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);}
+        o.start(t);o.stop(t+(up?.07:.09));
+        break;
+      case 2: // Soft tap — sine wave, gentle
+        o.type='sine';
+        if(up){o.frequency.setValueAtTime(880,t);o.frequency.linearRampToValueAtTime(660,t+.06);g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.12);}
+        else{o.frequency.setValueAtTime(440,t);o.frequency.linearRampToValueAtTime(330,t+.08);g.gain.setValueAtTime(.15,t);g.gain.exponentialRampToValueAtTime(.001,t+.14);}
+        o.start(t);o.stop(t+(up?.12:.14));
+        break;
+      case 3: // Mechanical — sawtooth, punchy
+        o.type='sawtooth';
+        if(up){o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(800,t+.02);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.06);}
+        else{o.frequency.setValueAtTime(250,t);o.frequency.exponentialRampToValueAtTime(100,t+.05);g.gain.setValueAtTime(.14,t);g.gain.exponentialRampToValueAtTime(.001,t+.08);}
+        o.start(t);o.stop(t+(up?.06:.08));
+        break;
+      case 4: // Scoreboard beep — clean tone, longer
+        o.type='sine';
+        if(up){o.frequency.setValueAtTime(1047,t);g.gain.setValueAtTime(.18,t);g.gain.setValueAtTime(.18,t+.08);g.gain.exponentialRampToValueAtTime(.001,t+.15);}
+        else{o.frequency.setValueAtTime(523,t);g.gain.setValueAtTime(.14,t);g.gain.setValueAtTime(.14,t+.06);g.gain.exponentialRampToValueAtTime(.001,t+.12);}
+        o.start(t);o.stop(t+(up?.15:.12));
+        break;
+      case 5: // Double-click — two quick pops
+        {
+          const o2=ctx.createOscillator(),g2=ctx.createGain();
+          o2.connect(g2);g2.connect(ctx.destination);
+          o.type='square';o2.type='square';
+          const f=up?900:400, f2=up?700:300;
+          o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.13,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);
+          o2.frequency.setValueAtTime(f2,t+.07);g2.gain.setValueAtTime(.13,t+.07);g2.gain.exponentialRampToValueAtTime(.001,t+.12);
+          o.start(t);o.stop(t+.05);
+          o2.start(t+.07);o2.stop(t+.12);
+        }
+        break;
+    }
+  }catch(e){}
+}
+
+function setSound(n){
+  _soundChoice=n;
+  // Update button highlight
+  for(let i=1;i<=5;i++){
+    const b=document.getElementById('snd-'+i);
+    if(b) b.className=i===n?'btn-primary sound-btn':'btn-neutral sound-btn';
+  }
+  // Play a preview
+  playClick(true);
+}
+
+// ── Clicker ──
+let ck={ball:0,strike:0,out:0};
+const LIM={ball:4,strike:3,out:3};
+function cInc(t){ck[t]=Math.min(ck[t]+1,LIM[t]);playClick(true);pop('cn-'+t);renderClicker();}
+function cDec(t){if(ck[t]<=0)return;ck[t]--;playClick(false);pop('cn-'+t);renderClicker();}
+function resetBatter(){ck.ball=0;ck.strike=0;playClick(false);renderClicker();}
+function resetAllClicker(){ck={ball:0,strike:0,out:0};playClick(false);renderClicker();}
+function pop(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');setTimeout(()=>el.classList.remove('pop'),130);}
+function renderClicker(){
+  ['ball','strike','out'].forEach(t=>document.getElementById('cn-'+t).textContent=ck[t]);
+  let bp='';for(let i=0;i<LIM.ball;i++)bp+=`<div class="pip${i<ck.ball?' ball-on':''}"></div>`;document.getElementById('pip-ball').innerHTML=bp;
+  let sp='';for(let i=0;i<LIM.strike;i++)sp+=`<div class="pip${i<ck.strike?' strike-on':''}"></div>`;document.getElementById('pip-strike').innerHTML=sp;
+  let od='';for(let i=0;i<LIM.out;i++)od+=`<div class="diamond${i<ck.out?' on':''}"></div>`;document.getElementById('out-diamonds').innerHTML=od;
+}
+
+// ── Tabs ──
+function switchTab(t){
+  ['game','clicker','notes'].forEach(n=>{
+    document.getElementById('tab-'+n).classList.toggle('active',n===t);
+    document.getElementById('pane-'+n).classList.toggle('active',n===t);
+  });
+}
+
+// ── Setup ──
+function toggleCutoffField(){document.getElementById('cutoff-wrap').style.display=document.getElementById('s-cutoff-en').checked?'grid':'none';}
+
+// ── Game state ──
+let G={};
+function fmtS(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?h+':'+pad(m)+':'+pad(sc):m+':'+pad(sc);}
+function pad(n){return String(n).padStart(2,'0');}
+function fmtT(d){let h=d.getHours(),m=d.getMinutes();const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap;}
+
+// ── Weather & system notes ──
+const WX_CODES={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Rain showers',81:'Heavy showers',82:'Violent showers',95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Severe thunderstorm'};
+
+function wxDesc(code,temp,wind){
+  const cond=WX_CODES[code]||'Unknown';
+  return `${cond}, ${Math.round(temp)}°C, wind ${Math.round(wind)} km/h`;
+}
+
+async function fetchWeather(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){resolve('Weather unavailable (no location)');return;}
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      try{
+        const {latitude:lat,longitude:lon}=pos.coords;
+        const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto`;
+        const r=await fetch(url);const d=await r.json();const c=d.current;
+        resolve(wxDesc(c.weathercode,c.temperature_2m,c.windspeed_10m));
+      }catch(e){resolve('Weather unavailable');}
+    },()=>resolve('Weather unavailable (location denied)'),{timeout:6000});
+  });
+}
+
+function sysNote(txt){
+  const now=new Date();
+  const note={id:Date.now(),txt,wall:fmtT(now),game:fmtS(getElapsed()),inn:G.curInn,system:true};
+  G.notes.push(note);
+  renderNotes();
+  const b=document.getElementById('note-badge');
+  b.style.display='inline';b.textContent=G.notes.length;
+}
+
+function startGame(){
+  const ni=parseInt(document.getElementById('s-inn').value);
+  const tl=parseInt(document.getElementById('s-limit').value);
+  const mpi=parseInt(document.getElementById('s-mpi').value);
+  const cEn=document.getElementById('s-cutoff-en').checked;
+  const cMin=parseInt(document.getElementById('s-cutoff').value)||80;
+  const cr=parseInt(document.getElementById('s-cr').value);
+  const crR=document.getElementById('s-cr-reset').value==='yes';
+  G={running:false,elapsed:0,clockEpoch:0,ivl:null,curInn:1,numInn:ni,tlSecs:tl*60,mpi,innings:[],innStart:0,
+     home:document.getElementById('s-home').value||'Home',
+     away:document.getElementById('s-away').value||'Away',
+     date:document.getElementById('s-date').value,
+     startTime:null,cEn,cSecs:cMin*60,cReached:false,
+     cr,crR,crUsed:{away:0,home:0},crLog:[],notes:[],
+     mercyRuns:parseInt(document.getElementById('s-mercy').value)||6};
+  for(let i=1;i<=ni;i++)G.innings.push({num:i,away:0,home:0,dur:null,started:false});
+  G.innings[0].started=true;
+  ck={ball:0,strike:0,out:0};
+  document.getElementById('setup-view').style.display='none';
+  document.getElementById('game-view').style.display='block';
+  document.getElementById('g-title').textContent=G.away+' @ '+G.home;
+  document.getElementById('g-sub').textContent=G.date+' · '+ni+' inn · '+tl+'min'+(cEn?' · Cutoff '+cMin+'m':'');
+  document.getElementById('lbl-away').textContent=G.away;
+  document.getElementById('lbl-home').textContent=G.home;
+  document.getElementById('th-away').textContent=G.away;
+  document.getElementById('th-home').textContent=G.home;
+  document.getElementById('cutoff-alert').classList.remove('show');
+  document.getElementById('run-rule-banner').classList.remove('show');
+  document.getElementById('cutoff-prog-wrap').style.display=cEn?'block':'none';
+  document.getElementById('btn-next').disabled=false;
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-start').textContent='▶ Start';
+  document.getElementById('btn-start').className='btn-green';
+  const showCR=cr>0;
+  document.getElementById('cr-panel').style.display=showCR?'block':'none';
+  if(showCR){document.getElementById('cr-lbl-away').textContent=G.away;document.getElementById('cr-lbl-home').textContent=G.home;document.getElementById('cr-log').innerHTML='';renderCR();}
+  document.getElementById('note-list').innerHTML='<div class="note-empty">No notes yet — add one above.</div>';
+  document.getElementById('note-input').value='';
+  document.getElementById('note-badge').style.display='none';
+  document.getElementById('m-rem').textContent=fmtS(G.tlSecs);
+  document.getElementById('m-final-inn').textContent='—';
+  document.getElementById('m-final-inn').className='metric-val';
+  switchTab('game');renderClicker();renderTable();updateMetrics();updateRunRule();
+  // Auto-note: game start + weather
+  fetchWeather().then(wx=>{
+    sysNote(`⚾ Game started — ${G.away} @ ${G.home} | 🌤 ${wx}`);
+  });
+}
+
+// ── Wall-clock timer (survives screen lock / background tab) ──
+// Instead of counting seconds with setInterval, we store the epoch ms when
+// the clock was last started and add (now - startEpoch) on every frame.
+// When the screen wakes up, visibilitychange fires and we resync instantly.
+
+function getElapsed(){
+  if(!G.running) return G.elapsed;
+  return G.elapsed + Math.floor((Date.now() - G.clockEpoch) / 1000);
+}
+
+function toggleTimer(){
+  if(G.running){
+    // Pause: bank how much time has elapsed up to now
+    G.elapsed = getElapsed();
+    G.running = false;
+    clearInterval(G.ivl);
+    document.getElementById('btn-start').textContent='▶ Resume';
+    document.getElementById('btn-start').className='btn-green';
+    setStatus('⏸ Paused','var(--amber-bg)','var(--amber-tx)');
+  } else {
+    // Start / Resume: record the epoch we resumed from
+    G.clockEpoch = Date.now();
+    if(!G.startTime) G.startTime = new Date(Date.now() - G.elapsed * 1000);
+    G.running = true;
+    G.ivl = setInterval(tick, 500); // 500ms poll so display stays smooth
+    document.getElementById('btn-start').textContent='⏸ Pause';
+    document.getElementById('btn-start').className='btn-red';
+    setStatus('● Live','var(--green-bg)','var(--green-tx)');
+    updateEndTime();
+  }
+}
+
+function setStatus(txt,bg,color){const el=document.getElementById('g-status');el.textContent=txt;el.style.background=bg;el.style.color=color;}
+function updateEndTime(){if(!G.startTime)return;const end=new Date(G.startTime.getTime()+G.numInn*G.mpi*60000);document.getElementById('m-end').textContent=fmtT(end);}
+
+function adjustClock(mins){
+  // Bank current live elapsed first
+  const e=getElapsed();
+  if(G.running){ G.elapsed=e; G.clockEpoch=Date.now(); }
+  // Apply adjustment (clamp to 0, don't go negative)
+  G.elapsed=Math.max(0, G.elapsed + mins*60);
+  // If running, shift clockEpoch so getElapsed() stays consistent
+  if(G.running) G.clockEpoch=Date.now();
+  // Also shift the inning start reference so inning durations stay accurate
+  G.innStart=Math.max(0, G.innStart + mins*60);
+  // Recheck cutoff in case adjustment crosses the threshold
+  G.cReached=false;
+  document.getElementById('cutoff-alert').classList.remove('show');
+  document.getElementById('btn-next').disabled=false;
+  checkCutoff(G.elapsed);
+  updateMetrics(G.elapsed);
+  renderTable();
+}
+
+function tick(){
+  if(!G.running) return;
+  const e = getElapsed();
+  checkCutoff(e);
+  updateMetrics(e);
+}
+
+// Resync the moment the screen unlocks / tab becomes visible
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && G.running) {
+    const e = getElapsed();
+    checkCutoff(e);
+    updateMetrics(e);
+    renderTable();
+  }
+});
+// Also catch iOS "wake from background" via pageshow
+window.addEventListener('pageshow', () => {
+  if(G.running) {
+    const e = getElapsed();
+    checkCutoff(e);
+    updateMetrics(e);
+    renderTable();
+  }
+});
+
+function checkCutoff(e){
+  if(!G.cEn||G.cReached)return;
+  if((e||getElapsed())>=G.cSecs){
+    G.cReached=true;
+    document.getElementById('cutoff-alert').classList.add('show');
+    document.getElementById('cutoff-alert').textContent='⚠ '+Math.round(G.cSecs/60)+'-minute cutoff reached — finish this inning, then end the game.';
+    document.getElementById('btn-next').disabled=true;
+  }
+}
+
+function updateRunRule(){
+  let a=0,h=0;G.innings.forEach(i=>{a+=i.away;h+=i.home;});
+  const diff=Math.abs(a-h);
+  const mercy=G.mercyRuns||6;
+  // Mercy only applies after 6 innings have been started
+  const inningsPlayed=G.innings.filter(i=>i.started).length;
+  const mercyActive=diff>=mercy&&inningsPlayed>=6;
+  const banner=document.getElementById('run-rule-banner');
+  const cA=document.getElementById('card-away'),cH=document.getElementById('card-home');
+  if(mercyActive){
+    const leader=a>h?G.away:G.home;
+    document.getElementById('run-rule-text').textContent=`${leader} leads by ${diff} runs (mercy rule: +${mercy}) — game may be called.`;
+    banner.classList.add('show');
+    if(a>h){cA.className='team-card leading';cH.className='team-card trailing';}
+    else{cH.className='team-card leading';cA.className='team-card trailing';}
+  } else if(diff>=mercy){
+    // Lead exists but innings threshold not yet met
+    const leader=a>h?G.away:G.home;
+    document.getElementById('run-rule-text').textContent=`${leader} leads by ${diff} runs — mercy rule applies after inning 6.`;
+    banner.classList.add('show');
+    cA.className='team-card';cH.className='team-card';
+  } else {
+    banner.classList.remove('show');
+    cA.className='team-card';cH.className='team-card';
+  }
+}
+
+function updateMetrics(e){
+  if(e===undefined) e=getElapsed();
+  const tl=G.tlSecs;
+  document.getElementById('g-clock').textContent=fmtS(e);
+  document.getElementById('m-el').textContent=fmtS(e);
+  const rem=Math.max(0,tl-e);
+  document.getElementById('m-rem').textContent=fmtS(rem);
+  const pct=Math.min(100,(e/tl)*100);
+  const pf=document.getElementById('pf-game');
+  pf.style.width=pct+'%';pf.style.background=pct<70?'#3B6D11':pct<90?'#854F0B':'#A32D2D';
+  const cl=document.getElementById('g-clock'),mr=document.getElementById('m-rem');
+  if(pct>=90){cl.className='timer-big danger';mr.className='metric-val danger';}
+  else if(pct>=70){cl.className='timer-big warn';mr.className='metric-val warn';}
+  else{cl.className='timer-big';mr.className='metric-val ok';}
+  document.getElementById('m-inn').textContent=G.curInn+'/'+G.numInn;
+  if(G.cEn){const cp=Math.min(100,(e/G.cSecs)*100);const cf=document.getElementById('pf-cutoff');cf.style.width=cp+'%';cf.style.background=cp<80?'#854F0B':'#A32D2D';}
+
+  // ── Expected final inning ──
+  // Use avg of completed innings if available, else fall back to configured mpi
+  const completed=G.innings.filter(i=>i.dur!==null);
+  let secsPerInn;
+  if(completed.length>0){
+    secsPerInn=completed.reduce((s,i)=>s+i.dur,0)/completed.length;
+  } else {
+    secsPerInn=G.mpi*60;
+  }
+  const mFin=document.getElementById('m-final-inn');
+  if(secsPerInn>0){
+    // Innings we can fit in the remaining time, added to current inning index
+    const innRemaining=Math.floor(rem/secsPerInn);
+    const estFinal=Math.min(G.curInn+innRemaining, G.numInn);
+    const label='Inn. '+estFinal+(estFinal>=G.numInn?' ✓':'');
+    mFin.textContent=label;
+    // Colour: green = full game expected, amber = 1 short, red = 2+ short
+    const shortfall=G.numInn-estFinal;
+    mFin.className='metric-val'+(shortfall===0?' ok':shortfall===1?' warn':' danger');
+  } else {
+    mFin.textContent='—';
+    mFin.className='metric-val';
+  }
+}
+
+function nextInning(){
+  if(G.cReached&&G.cEn)return;
+  const e=getElapsed();
+  // Bank current elapsed before we snapshot the inning
+  if(G.running){ G.elapsed=e; G.clockEpoch=Date.now(); }
+  const ci=G.curInn-1;
+  if(ci<G.innings.length)G.innings[ci].dur=G.elapsed-G.innStart;
+  if(G.curInn>=G.numInn){endGame();return;}
+  // Save snapshot for undo
+  G._undoSnap={
+    curInn:G.curInn, innStart:G.innStart, elapsed:G.elapsed,
+    innings:JSON.parse(JSON.stringify(G.innings)),
+    crUsed:{...G.crUsed}
+  };
+  G.innStart=G.elapsed;G.curInn++;
+  if(G.curInn<=G.innings.length)G.innings[G.curInn-1].started=true;
+  if(G.crR){G.crUsed.away=0;G.crUsed.home=0;}
+  document.getElementById('btn-undo-inn').disabled=false;
+  renderTable();renderCR();updateMetrics();
+}
+
+function undoInning(){
+  if(!G._undoSnap)return;
+  const s=G._undoSnap;
+  G.curInn=s.curInn;
+  G.innStart=s.innStart;
+  G.elapsed=s.elapsed;
+  if(G.running){G.clockEpoch=Date.now();}
+  G.innings=s.innings;
+  G.crUsed=s.crUsed;
+  G._undoSnap=null;
+  document.getElementById('btn-undo-inn').disabled=true;
+  updTotals();renderTable();renderCR();updateMetrics();updateRunRule();
+}
+
+function chScore(idx,team,d){
+  G.innings[idx][team]=Math.max(0,G.innings[idx][team]+d);
+  updTotals();renderTable();updateRunRule();
+}
+function updTotals(){
+  let a=0,h=0;G.innings.forEach(i=>{a+=i.away;h+=i.home;});
+  document.getElementById('tot-away').textContent=a;
+  document.getElementById('tot-home').textContent=h;
+}
+
+function useCR(t){
+  if(G.crUsed[t]>=G.cr)return;
+  G.crUsed[t]++;
+  const ts=fmtS(getElapsed());
+  G.crLog.push({team:t,inn:G.curInn,ts,wall:fmtT(new Date())});
+  renderCR();
+  const n=t==='away'?G.away:G.home;
+  const s=document.createElement('div');s.dataset.team=t;
+  s.textContent=n+' — Inn.'+G.curInn+' @ '+ts;
+  document.getElementById('cr-log').appendChild(s);
+}
+function undoCR(t){
+  if(G.crUsed[t]<=0)return;G.crUsed[t]--;
+  G.crLog=G.crLog.filter((e,i,a)=>{
+    let last=-1;a.forEach((x,j)=>{if(x.team===t)last=j;});return i!==last;
+  });
+  const log=document.getElementById('cr-log');
+  const kids=[...log.children].filter(c=>c.dataset.team===t);
+  if(kids.length)kids[kids.length-1].remove();
+  renderCR();
+}
+function renderCR(){
+  if(!G.cr)return;
+  ['away','home'].forEach(t=>{
+    const u=G.crUsed[t],lim=G.cr;
+    let d='';for(let i=0;i<lim;i++)d+=`<div class="dot${i<u?(i===lim-1?' used last':' used'):''}"></div>`;
+    document.getElementById('cr-dots-'+t).innerHTML=d;
+    const r=lim-u;
+    const el=document.getElementById('cr-rem-'+t);
+    el.textContent=r===0?'None remaining':r+' of '+lim+' remaining';
+    el.className='cr-rem'+(r===0?' danger':r===1?' warn':'');
+    document.getElementById('cr-use-'+t).disabled=r<=0;
+  });
+}
+
+function addNote(){
+  const inp=document.getElementById('note-input'),txt=inp.value.trim();if(!txt)return;
+  const now=new Date();
+  G.notes.push({id:Date.now(),txt,wall:fmtT(now),game:fmtS(getElapsed()),inn:G.curInn});
+  inp.value='';renderNotes();
+  const b=document.getElementById('note-badge');b.style.display='inline';b.textContent=G.notes.length;
+}
+function delNote(id){
+  G.notes=G.notes.filter(n=>n.id!==id);renderNotes();
+  const b=document.getElementById('note-badge');
+  if(G.notes.length===0)b.style.display='none';else b.textContent=G.notes.length;
+}
+function renderNotes(){
+  const el=document.getElementById('note-list');
+  if(!G.notes||G.notes.length===0){el.innerHTML='<div class="note-empty">No notes yet — add one above.</div>';return;}
+  el.innerHTML=G.notes.map(n=>{
+    const isSys=n.system;
+    const itemStyle=isSys?'background:var(--blue-bg);border:1px solid var(--blue-bd);':'';
+    const textStyle=isSys?'color:var(--blue-tx);font-style:italic;':'';
+    const delBtn=isSys?'':`<button class="note-del" onclick="delNote(${n.id})" title="Delete">✕</button>`;
+    return `<div class="note-item" style="${itemStyle}">
+      <div class="note-meta"><span>Inn. ${n.inn}</span><span>${n.wall}</span><span>[${n.game}]</span></div>
+      <div class="note-text" style="${textStyle}">${n.txt.replace(/</g,'&lt;')}</div>
+      ${delBtn}
+    </div>`;
+  }).join('');
+}
+
+function renderTable(){
+  const tb=document.getElementById('inn-body'),exp=G.mpi*60;let rows='';
+  const e=getElapsed();
+  G.innings.forEach((inn,i)=>{
+    const isA=(i+1)===G.curInn;
+    const dur=inn.dur!==null?inn.dur:(isA?(e-G.innStart):null);
+    const ds=dur!==null?fmtS(dur):(inn.started?'…':'—');
+    let delta='—',dc='color:var(--text2)';
+    if(inn.dur!==null){const d=Math.round((inn.dur-exp)/60);delta=(d>0?'+':'')+d+'m';dc=d>3?'color:var(--red)':d<-3?'color:var(--green)':'color:var(--text2)';}
+    const rc=isA?'cur':(!inn.started?'locked':'');
+    const ac=inn.started?`<div class="sc"><button onclick="chScore(${i},'away',-1)">−</button><span>${inn.away}</span><button onclick="chScore(${i},'away',1)">+</button></div>`:'—';
+    const hc=inn.started?`<div class="sc"><button onclick="chScore(${i},'home',-1)">−</button><span>${inn.home}</span><button onclick="chScore(${i},'home',1)">+</button></div>`:'—';
+    rows+=`<tr class="${rc}"><td>${inn.num}</td><td>${ac}</td><td>${hc}</td><td>${ds}</td><td>${fmtS(exp)}</td><td style="${dc}">${delta}</td></tr>`;
+  });
+  document.getElementById('inn-body').innerHTML=rows;
+}
+
+function endGame(){
+  const e=getElapsed();
+  if(G.running){ G.elapsed=e; G.clockEpoch=Date.now(); }
+  // Save snapshot for undo
+  G._undoEndSnap={
+    running:G.running, elapsed:G.elapsed, curInn:G.curInn,
+    innStart:G.innStart, innings:JSON.parse(JSON.stringify(G.innings)),
+    cReached:G.cReached
+  };
+  if(G.running)toggleTimer();
+  const ci=G.curInn-1;
+  if(ci<G.innings.length&&G.innings[ci].dur===null)G.innings[ci].dur=G.elapsed-G.innStart;
+  setStatus('⚑ Final','var(--red-bg)','var(--red-tx)');
+  document.getElementById('btn-next').disabled=true;
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('btn-end').disabled=true;
+  document.getElementById('btn-undo-end').style.display='inline-flex';
+  document.getElementById('btn-undo-inn').style.display='none';
+  renderTable();
+  // Auto-note: game end + weather
+  let a=0,h=0;G.innings.forEach(i=>{a+=i.away;h+=i.home;});
+  const winner=a>h?G.away:h>a?G.home:'Tie';
+  const scoreLine=a===h?`Final score: ${a}–${h} (Tie)`:`Final score: ${G.away} ${a}, ${G.home} ${h} — ${winner} wins`;
+  fetchWeather().then(wx=>{
+    sysNote(`🏁 Game ended (${fmtS(G.elapsed)} elapsed) | ${scoreLine} | 🌤 ${wx}`);
+  });
+}
+
+function undoEndGame(){
+  if(!G._undoEndSnap)return;
+  const s=G._undoEndSnap;
+  G.elapsed=s.elapsed; G.curInn=s.curInn;
+  G.innStart=s.innStart; G.innings=s.innings;
+  G.cReached=s.cReached; G._undoEndSnap=null;
+  // Restore UI state
+  setStatus('⏸ Paused','var(--amber-bg)','var(--amber-tx)');
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-start').textContent='▶ Resume';
+  document.getElementById('btn-start').className='btn-green';
+  document.getElementById('btn-next').disabled=G.cReached&&G.cEn;
+  document.getElementById('btn-end').disabled=false;
+  document.getElementById('btn-undo-end').style.display='none';
+  document.getElementById('btn-undo-inn').style.display='inline-flex';
+  // Remove the auto-generated end-game note
+  G.notes=G.notes.filter(n=>!(n.system&&n.txt.startsWith('🏁')));
+  updTotals();renderTable();renderCR();updateMetrics();updateRunRule();renderNotes();
+  const b=document.getElementById('note-badge');
+  if(G.notes.length===0)b.style.display='none';else{b.style.display='inline';b.textContent=G.notes.length;}
+}
+
+function resetGame(){
+  if(G.running){G.running=false;clearInterval(G.ivl);}
+  document.getElementById('cutoff-alert').classList.remove('show');
+  document.getElementById('run-rule-banner').classList.remove('show');
+  document.getElementById('card-away').className='team-card';
+  document.getElementById('card-home').className='team-card';
+  document.getElementById('game-view').style.display='none';
+  document.getElementById('league-view').style.display='block';
+  renderLeagueGrid();
+}
+
+// ── PDF EXPORT ──
+function exportPDF(){
+  const e=getElapsed();
+  let a=0,h=0;G.innings.forEach(i=>{a+=i.away;h+=i.home;});
+  const status=G.running?'In progress':(document.getElementById('g-status').textContent.includes('Final')?'Final':'Paused');
+  const exp=G.mpi*60;
+
+  // Inning rows
+  let innRows='';
+  G.innings.forEach(inn=>{
+    const dur=inn.dur!==null?fmtS(inn.dur):(inn.started?'In progress':'—');
+    let delta='—';
+    if(inn.dur!==null){const d=Math.round((inn.dur-exp)/60);delta=(d>0?'+':'')+d+'m';}
+    innRows+=`<tr>
+      <td style="text-align:center">${inn.num}</td>
+      <td style="text-align:center">${inn.started?inn.away:'—'}</td>
+      <td style="text-align:center">${inn.started?inn.home:'—'}</td>
+      <td style="text-align:center">${dur}</td>
+      <td style="text-align:center">${fmtS(exp)}</td>
+      <td style="text-align:center">${delta}</td>
+    </tr>`;
+  });
+
+  // CR log
+  let crHTML='';
+  if(G.cr>0&&G.crLog.length>0){
+    crHTML=`<div class="print-section">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Courtesy Runners Used</div>
+      <table><thead><tr><th>Team</th><th>Inning</th><th>Game Time</th><th>Clock Time</th></tr></thead><tbody>
+      ${G.crLog.map(r=>`<tr><td>${r.team==='away'?G.away:G.home}</td><td>${r.inn}</td><td>${r.ts}</td><td>${r.wall}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  } else if(G.cr>0){
+    crHTML=`<div class="print-section"><div style="font-size:13px;font-weight:700;margin-bottom:4px;">Courtesy Runners</div>
+      <div style="font-size:12px;color:#555">${G.away}: ${G.crUsed.away} used / ${G.cr} allowed &nbsp;|&nbsp; ${G.home}: ${G.crUsed.home} used / ${G.cr} allowed</div></div>`;
+  }
+
+  // Notes
+  let notesHTML='';
+  if(G.notes&&G.notes.length>0){
+    notesHTML=`<div class="print-section">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Game Notes</div>
+      ${G.notes.map(n=>`<div class="print-note-item" style="${n.system?'color:#1a3a6a;font-style:italic;':''}"><span class="print-note-meta">Inn.${n.inn} &nbsp;${n.wall} &nbsp;[${n.game}]</span><br>${n.txt.replace(/</g,'&lt;')}</div>`).join('')}
+    </div>`;
+  }
+
+  // Assemble
+  document.getElementById('print-view').innerHTML=`
+    <div class="print-section">
+      <div class="print-header">⚾ ${G.away} @ ${G.home}</div>
+      <div class="print-sub">${G.date} &nbsp;·&nbsp; ${G.numInn} innings &nbsp;·&nbsp; ${Math.round(G.tlSecs/60)}-min limit${G.cEn?' · Cutoff '+Math.round(G.cSecs/60)+'m':''} &nbsp;·&nbsp; Status: ${status} &nbsp;·&nbsp; Exported: ${fmtT(new Date())}</div>
+    </div>
+    <div class="print-score-row print-section">
+      <div class="print-score-card"><div class="print-score-name">${G.away}</div><div class="print-score-runs">${a}</div></div>
+      <div style="display:flex;align-items:center;padding:0 12px;color:#888;font-size:14px;">vs</div>
+      <div class="print-score-card"><div class="print-score-name">${G.home}</div><div class="print-score-runs">${h}</div></div>
+    </div>
+    <div class="print-grid print-section" style="grid-template-columns:repeat(5,1fr);">
+      <div class="print-metric"><div class="print-metric-lbl">Inning</div><div class="print-metric-val">${G.curInn}/${G.numInn}</div></div>
+      <div class="print-metric"><div class="print-metric-lbl">Elapsed</div><div class="print-metric-val">${fmtS(e)}</div></div>
+      <div class="print-metric"><div class="print-metric-lbl">Time limit</div><div class="print-metric-val">${Math.round(G.tlSecs/60)}m</div></div>
+      <div class="print-metric"><div class="print-metric-lbl">Remaining</div><div class="print-metric-val">${fmtS(Math.max(0,G.tlSecs-e))}</div></div>
+      <div class="print-metric"><div class="print-metric-lbl">Est. final inn.</div><div class="print-metric-val">${document.getElementById('m-final-inn').textContent}</div></div>
+    </div>
+    <div class="print-section">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Inning by Inning</div>
+      <table><thead><tr><th>Inn.</th><th>${G.away}</th><th>${G.home}</th><th>Duration</th><th>Expected</th><th>+/−</th></tr></thead>
+      <tbody>${innRows}</tbody>
+      <tfoot><tr style="font-weight:700;border-top:2px solid #ccc"><td>Total</td><td style="text-align:center">${a}</td><td style="text-align:center">${h}</td><td colspan="3"></td></tr></tfoot>
+      </table>
+    </div>
+    ${crHTML}
+    ${notesHTML}
+  `;
+
+  setTimeout(()=>window.print(), 100);
+}
+
+renderClicker();
+
+// ── League management — data embedded in file ──
+// Leagues are stored in the LEAGUES_DATA variable below.
+// After adding/editing/deleting, tap "Save file" to download an updated
+// copy of this HTML with your leagues baked in permanently.
+
+/*LEAGUES_DATA_START*/
+let _leagues = [];
+/*LEAGUES_DATA_END*/
+
+let _selectedLeagueId=null;
+let _editingLeagueId=null;
+
+function persistLeagues(){
+  // Re-fetch the original HTML source, splice in the new league data,
+  // then offer the result as a file download.
+  const src = document.documentElement.outerHTML;
+  const newData = 'let _leagues = ' + JSON.stringify(_leagues, null, 2) + ';';
+  const updated = src.replace(
+    /\/\*LEAGUES_DATA_START\*\/[\s\S]*?\/\*LEAGUES_DATA_END\*\//,
+    '/*LEAGUES_DATA_START*/\n' + newData + '\n/*LEAGUES_DATA_END*/'
+  );
+  const blob = new Blob([updated], {type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'index.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  // Show confirmation
+  showSaveBanner();
+}
+
+function showSaveBanner(){
+  let b=document.getElementById('save-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='save-banner';
+    b.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e5016;color:#d8f0d4;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+    document.body.appendChild(b);
+  }
+  b.textContent='✓ index.html downloaded — re-upload it to your GitHub repo to save leagues permanently.';
+  b.style.display='block';
+  setTimeout(()=>b.style.display='none', 5000);
+}
+
+function renderLeagueGrid(){
+  const grid=document.getElementById('league-grid');
+  if(_leagues.length===0){
+    grid.innerHTML='<div style="font-size:13px;color:var(--text3);font-style:italic;padding:4px 2px;">No leagues yet — add one below.</div>';
+    document.getElementById('btn-league-next').disabled=true;
+    return;
+  }
+  grid.innerHTML=_leagues.map(l=>{
+    const sel=l.id===_selectedLeagueId;
+    return `<div class="league-card${sel?' selected':''}" onclick="selectLeague('${l.id}')">
+      <div class="league-card-info">
+        <div class="league-card-name">${l.name}</div>
+        <div class="league-card-pills">
+          <span class="league-pill">${l.inn} inn</span>
+          <span class="league-pill">${l.limit}min</span>
+          <span class="league-pill">${l.cr>0?l.cr+' runners':'No runners'}</span>
+          <span class="league-pill">Mercy: +${l.mercy}</span>
+          <span class="league-pill">Cutoff: ${l.cutoff}m</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('${l.id}')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
+        <div class="league-check">${sel?'✓':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('btn-league-next').disabled=!_selectedLeagueId;
+}
+
+function selectLeague(id){
+  _selectedLeagueId=id;
+  renderLeagueGrid();
+  document.getElementById('btn-league-next').disabled=false;
+  cancelEditLeague();
+}
+
+function showAddLeague(){
+  _editingLeagueId=null;
+  document.getElementById('league-edit-title-text').textContent='New league';
+  document.getElementById('le-name').value='';
+  document.getElementById('le-inn').value='9';
+  document.getElementById('le-limit').value='85';
+  document.getElementById('le-mpi').value='10';
+  document.getElementById('le-cutoff').value='80';
+  document.getElementById('le-cr').value='7';
+  document.getElementById('le-mercy').value='6';
+  document.getElementById('le-delete-btn').style.display='none';
+  document.getElementById('league-edit-panel').style.display='block';
+  document.getElementById('le-name').focus();
+}
+
+function editLeague(id){
+  const l=_leagues.find(x=>x.id===id);if(!l)return;
+  _editingLeagueId=id;
+  document.getElementById('league-edit-title-text').textContent='Edit — '+l.name;
+  document.getElementById('le-name').value=l.name;
+  document.getElementById('le-inn').value=l.inn;
+  document.getElementById('le-limit').value=l.limit;
+  document.getElementById('le-mpi').value=l.mpi;
+  document.getElementById('le-cutoff').value=l.cutoff;
+  document.getElementById('le-cr').value=l.cr;
+  document.getElementById('le-mercy').value=l.mercy;
+  document.getElementById('le-delete-btn').style.display='inline-flex';
+  document.getElementById('league-edit-panel').style.display='block';
+}
+
+function cancelEditLeague(){
+  _editingLeagueId=null;
+  document.getElementById('league-edit-panel').style.display='none';
+}
+
+function saveLeague(){
+  const name=document.getElementById('le-name').value.trim();
+  if(!name){alert('Please enter a league name.');return;}
+  const data={
+    name,
+    inn:parseInt(document.getElementById('le-inn').value),
+    limit:parseInt(document.getElementById('le-limit').value),
+    mpi:parseInt(document.getElementById('le-mpi').value),
+    cutoff:parseInt(document.getElementById('le-cutoff').value),
+    cr:parseInt(document.getElementById('le-cr').value),
+    mercy:parseInt(document.getElementById('le-mercy').value)
+  };
+  if(_editingLeagueId){
+    const idx=_leagues.findIndex(x=>x.id===_editingLeagueId);
+    if(idx>-1){ data.id=_editingLeagueId; _leagues[idx]=data; }
+  } else {
+    data.id='league_'+Date.now();
+    _leagues.push(data);
+    _selectedLeagueId=data.id;
+  }
+  cancelEditLeague();
+  renderLeagueGrid();
+  persistLeagues();
+}
+
+function deleteLeague(){
+  if(!_editingLeagueId)return;
+  if(!confirm('Delete this league? You\'ll need to save the file to make it permanent.'))return;
+  _leagues=_leagues.filter(x=>x.id!==_editingLeagueId);
+  if(_selectedLeagueId===_editingLeagueId)_selectedLeagueId=null;
+  cancelEditLeague();
+  renderLeagueGrid();
+  persistLeagues();
+}
+
+function goToLeagueSelect(){
+  document.getElementById('setup-view').style.display='none';
+  document.getElementById('league-view').style.display='block';
+}
+
+function goToGameSetup(){
+  const l=_leagues.find(x=>x.id===_selectedLeagueId);
+  if(!l)return;
+  document.getElementById('s-inn').value=l.inn;
+  document.getElementById('s-limit').value=l.limit;
+  document.getElementById('s-mpi').value=l.mpi;
+  document.getElementById('s-cutoff').value=l.cutoff;
+  document.getElementById('s-cutoff-en').checked=true;
+  toggleCutoffField();
+  document.getElementById('s-cr').value=Math.min(l.cr,10);
+  document.getElementById('s-mercy').value=l.mercy;
+  document.getElementById('s-date').value=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('setup-league-name').textContent='⚾ '+l.name;
+  document.getElementById('setup-league-sub').textContent='Game setup — settings pre-filled from league';
+  document.getElementById('league-view').style.display='none';
+  document.getElementById('setup-view').style.display='block';
+}
+
+// ── Init ──
+renderLeagueGrid();
+document.getElementById('s-date').value=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+// ── PWA: register service worker for offline support ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
