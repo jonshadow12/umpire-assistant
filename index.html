@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>⚾ Umpire Assistant v0.14</title>
@@ -245,12 +243,57 @@ tr.locked td { color: var(--text3); font-style: italic; }
 
   <div class="card">
     <div class="section-lbl">Choose a league</div>
-    <div class="league-grid" id="league-grid"></div>
+    <div class="league-grid" id="league-grid"><div class="league-card" onclick="selectLeague('league_1781289417574')">
+      <div class="league-card-info">
+        <div class="league-card-name">Friday Night Aurora Mixed Slo Pitch League</div>
+        <div class="league-card-pills">
+          <span class="league-pill">9 inn</span>
+          <span class="league-pill">85min</span>
+          <span class="league-pill">7 runners</span>
+          <span class="league-pill">Mercy: +12</span>
+          <span class="league-pill">Cutoff: 80m</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('league_1781289417574')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
+        <div class="league-check"></div>
+      </div>
+    </div><div class="league-card" onclick="selectLeague('league_1781289500503')">
+      <div class="league-card-info">
+        <div class="league-card-name">Men's YRMSPL League</div>
+        <div class="league-card-pills">
+          <span class="league-pill">8 inn</span>
+          <span class="league-pill">100min</span>
+          <span class="league-pill">7 runners</span>
+          <span class="league-pill">Mercy: +12</span>
+          <span class="league-pill">Cutoff: 90m</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('league_1781289500503')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
+        <div class="league-check"></div>
+      </div>
+    </div><div class="league-card selected" onclick="selectLeague('league_1781289540431')">
+      <div class="league-card-info">
+        <div class="league-card-name">MLB</div>
+        <div class="league-card-pills">
+          <span class="league-pill">9 inn</span>
+          <span class="league-pill">999min</span>
+          <span class="league-pill">No runners</span>
+          <span class="league-pill">Mercy: +0</span>
+          <span class="league-pill">Cutoff: 999m</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('league_1781289540431')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
+        <div class="league-check">✓</div>
+      </div>
+    </div></div>
     <button class="btn-neutral" onclick="showAddLeague()" style="width:100%;justify-content:center;margin-bottom:0;">+ Add new league</button>
   </div>
 
   <!-- Add / Edit league panel -->
-  <div class="league-edit-panel" id="league-edit-panel" style="display:none;">
+  <div class="league-edit-panel" id="league-edit-panel" style="display: none;">
     <div class="league-edit-title">
       <span id="league-edit-title-text">New league</span>
       <button class="btn-neutral" onclick="cancelEditLeague()" style="font-size:12px;padding:4px 10px;">Cancel</button>
@@ -261,7 +304,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <select id="le-inn">
           <option value="3">3</option><option value="4">4</option><option value="5">5</option>
           <option value="6">6</option><option value="7">7</option><option value="8">8</option>
-          <option value="9" selected>9</option><option value="10">10</option>
+          <option value="9" selected="">9</option><option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Time limit (min)</label><input type="number" id="le-limit" value="85" min="10" max="300"></div>
@@ -272,7 +315,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
           <option value="0">None</option>
           <option value="1">1</option><option value="2">2</option><option value="3">3</option>
           <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+          <option value="7" selected="">7</option><option value="8">8</option><option value="9">9</option>
           <option value="10">10</option>
         </select>
       </div>
@@ -280,12 +323,12 @@ tr.locked td { color: var(--text3); font-style: italic; }
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn-primary" onclick="saveLeague()" style="flex:1;justify-content:center;">✓ Save league</button>
-      <button class="btn-red" id="le-delete-btn" onclick="deleteLeague()" style="display:none;padding:8px 14px;">🗑 Delete</button>
+      <button class="btn-red" id="le-delete-btn" onclick="deleteLeague()" style="display: none; padding: 8px 14px;">🗑 Delete</button>
     </div>
   </div>
 
   <div style="margin-top:4px;">
-    <button class="btn-primary" id="btn-league-next" onclick="goToGameSetup()" style="width:100%;justify-content:center;padding:11px;" disabled>Continue to game setup →</button>
+    <button class="btn-primary" id="btn-league-next" onclick="goToGameSetup()" style="width:100%;justify-content:center;padding:11px;">Continue to game setup →</button>
   </div>
 </div>
 
@@ -311,7 +354,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <select id="s-inn">
           <option value="3">3</option><option value="4">4</option><option value="5">5</option>
           <option value="6">6</option><option value="7">7</option><option value="8">8</option>
-          <option value="9" selected>9</option><option value="10">10</option>
+          <option value="9" selected="">9</option><option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Time limit (min)</label><input type="number" id="s-limit" value="85" min="10" max="300"></div>
@@ -320,7 +363,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
     </div>
     <hr class="divider">
     <div class="section-lbl">Inning start cutoff</div>
-    <div class="check-row"><input type="checkbox" id="s-cutoff-en" checked onchange="toggleCutoffField()"><label for="s-cutoff-en">Enable inning start cutoff</label></div>
+    <div class="check-row"><input type="checkbox" id="s-cutoff-en" checked="" onchange="toggleCutoffField()"><label for="s-cutoff-en">Enable inning start cutoff</label></div>
     <div id="cutoff-wrap" class="grid2">
       <div class="field"><label>No new inning after (min)</label><input type="number" id="s-cutoff" value="80" min="1" max="300"></div>
       <div class="field" style="padding-top:18px;font-size:11px;color:var(--text3)">"Next inning" locks once this time passes.</div>
@@ -333,12 +376,12 @@ tr.locked td { color: var(--text3); font-style: italic; }
           <option value="0">None (disabled)</option>
           <option value="1">1</option><option value="2">2</option><option value="3">3</option>
           <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+          <option value="7" selected="">7</option><option value="8">8</option><option value="9">9</option>
           <option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Reset each inning?</label>
-        <select id="s-cr-reset"><option value="no" selected>No — per game</option><option value="yes">Yes — per inning</option></select>
+        <select id="s-cr-reset"><option value="no" selected="">No — per game</option><option value="yes">Yes — per inning</option></select>
       </div>
     </div>
     <hr class="divider">
@@ -364,9 +407,9 @@ tr.locked td { color: var(--text3); font-style: italic; }
   </div>
 
   <div class="tab-bar no-print">
-    <button class="tab-btn active" id="tab-game"    onclick="switchTab('game')">📊 Game</button>
-    <button class="tab-btn"        id="tab-clicker" onclick="switchTab('clicker')">🖱 Clicker</button>
-    <button class="tab-btn"        id="tab-notes"   onclick="switchTab('notes')">📝 Notes <span class="note-badge" id="note-badge"></span></button>
+    <button class="tab-btn active" id="tab-game" onclick="switchTab('game')">📊 Game</button>
+    <button class="tab-btn" id="tab-clicker" onclick="switchTab('clicker')">🖱 Clicker</button>
+    <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">📝 Notes <span class="note-badge" id="note-badge"></span></button>
   </div>
 
   <!-- GAME PANE -->
@@ -394,7 +437,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <!-- Left: minute adjustment controls -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:2px;">Adjust</div>
-          <button class="btn-amber" onclick="adjustClock(1)"  style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Add 1 minute">+1m</button>
+          <button class="btn-amber" onclick="adjustClock(1)" style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Add 1 minute">+1m</button>
           <button class="btn-amber" onclick="adjustClock(-1)" style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Subtract 1 minute">−1m</button>
         </div>
         <!-- Right: clock -->
@@ -409,12 +452,12 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <div class="prog-lbl">Inning cutoff</div>
       </div>
       <div class="btn-row">
-        <button class="btn-green"   id="btn-start" onclick="toggleTimer()">▶ Start</button>
-        <button class="btn-primary" id="btn-next"  onclick="nextInning()">→ Next inning</button>
-        <button class="btn-red"     id="btn-end"   onclick="endGame()">⚑ End game</button>
+        <button class="btn-green" id="btn-start" onclick="toggleTimer()">▶ Start</button>
+        <button class="btn-primary" id="btn-next" onclick="nextInning()">→ Next inning</button>
+        <button class="btn-red" id="btn-end" onclick="endGame()">⚑ End game</button>
       </div>
       <div class="btn-row" style="margin-top:6px;">
-        <button class="btn-neutral" id="btn-undo-inn" onclick="undoInning()" style="font-size:12px;" disabled>↩ Undo last inning</button>
+        <button class="btn-neutral" id="btn-undo-inn" onclick="undoInning()" style="font-size:12px;" disabled="">↩ Undo last inning</button>
         <button class="btn-neutral" id="btn-undo-end" onclick="undoEndGame()" style="font-size:12px;display:none;">↩ Undo end game</button>
       </div>
     </div>
@@ -461,7 +504,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
   <div class="pane no-print" id="pane-clicker">
     <div class="clicker-section">
       <div class="click-card">
-        <div class="click-header"><span class="click-title balls">Balls</span><div class="pip-row" id="pip-ball"></div></div>
+        <div class="click-header"><span class="click-title balls">Balls</span><div class="pip-row" id="pip-ball"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div></div>
         <div class="click-body">
           <div class="click-num" id="cn-ball">0</div>
           <div class="click-col">
@@ -471,7 +514,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         </div>
       </div>
       <div class="click-card">
-        <div class="click-header"><span class="click-title strikes">Strikes</span><div class="pip-row" id="pip-strike"></div></div>
+        <div class="click-header"><span class="click-title strikes">Strikes</span><div class="pip-row" id="pip-strike"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div></div>
         <div class="click-body">
           <div class="click-num" id="cn-strike">0</div>
           <div class="click-col">
@@ -481,7 +524,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         </div>
       </div>
       <div class="click-card">
-        <div class="click-header"><span class="click-title outs">Outs</span><div class="out-diamonds" id="out-diamonds"></div></div>
+        <div class="click-header"><span class="click-title outs">Outs</span><div class="out-diamonds" id="out-diamonds"><div class="diamond"></div><div class="diamond"></div><div class="diamond"></div></div></div>
         <div class="click-body">
           <div class="click-num" id="cn-out">0</div>
           <div class="click-col">
@@ -1135,7 +1178,38 @@ renderClicker();
 // copy of this HTML with your leagues baked in permanently.
 
 /*LEAGUES_DATA_START*/
-let _leagues = [];
+let _leagues = [
+  {
+    "name": "Friday Night Aurora Mixed Slo Pitch League",
+    "inn": 9,
+    "limit": 85,
+    "mpi": 14,
+    "cutoff": 80,
+    "cr": 7,
+    "mercy": 12,
+    "id": "league_1781289417574"
+  },
+  {
+    "name": "Men's YRMSPL League",
+    "inn": 8,
+    "limit": 100,
+    "mpi": 12,
+    "cutoff": 90,
+    "cr": 7,
+    "mercy": 12,
+    "id": "league_1781289500503"
+  },
+  {
+    "name": "MLB",
+    "inn": 9,
+    "limit": 999,
+    "mpi": 15,
+    "cutoff": 999,
+    "cr": 0,
+    "mercy": 0,
+    "id": "league_1781289540431"
+  }
+];
 /*LEAGUES_DATA_END*/
 
 let _selectedLeagueId=null;
@@ -1314,5 +1388,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-</body>
-</html>
+
+
+<div id="save-banner" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgb(30, 80, 22); color: rgb(216, 240, 212); padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 9999; box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 12px; display: none;">✓ index.html downloaded — re-upload it to your GitHub repo to save leagues permanently.</div></body></html>
