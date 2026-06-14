@@ -259,6 +259,18 @@ tr.locked td { color: var(--text3); font-style: italic; }
 .rules-display hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 .rules-empty { font-size: 14px; color: var(--text3); font-style: italic; text-align: center; padding: 40px 20px; }
 
+/* ── CONFIRM MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; padding: 24px; }
+.modal-overlay.show { display: flex; }
+.modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 340px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
+.modal-icon { font-size: 28px; text-align: center; margin-bottom: 10px; }
+.modal-title { font-size: 16px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 6px; }
+.modal-body { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.5; margin-bottom: 18px; }
+.modal-body strong { color: var(--text); font-weight: 600; }
+.modal-btns { display: flex; gap: 10px; }
+.modal-btns button { flex: 1; justify-content: center; padding: 11px; font-size: 14px; font-weight: 600; }
+
+
 </style>
 </head>
 <body>
@@ -591,6 +603,21 @@ tr.locked td { color: var(--text3); font-style: italic; }
   </div>
 
 </div><!-- /game-view -->
+
+<!-- ══ PAST INNING EDIT CONFIRM MODAL ══ -->
+<div class="modal-overlay" id="score-confirm-modal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Edit past inning?</div>
+    <div class="modal-body" id="score-confirm-body">
+      You are about to change the score for a <strong>completed inning</strong>. Are you sure this isn't a misclick?
+    </div>
+    <div class="modal-btns">
+      <button class="btn-neutral" onclick="dismissScoreConfirm()">Cancel</button>
+      <button class="btn-red"     onclick="confirmScoreChange()">Yes, edit it</button>
+    </div>
+  </div>
+</div>
 
 </div><!-- /app -->
 
@@ -999,9 +1026,43 @@ function undoInning(){
   updTotals();renderTable();renderCR();updateMetrics();updateRunRule();
 }
 
-function chScore(idx,team,d){
-  G.innings[idx][team]=Math.max(0,G.innings[idx][team]+d);
-  updTotals();renderTable();updateRunRule();
+// Pending score change — held while modal is open
+let _pendingScore = null;
+
+function chScore(idx, team, d){
+  const isPastInning = (idx + 1) < G.curInn;
+  if(isPastInning){
+    // Store the intended change and show the warning modal
+    _pendingScore = {idx, team, d};
+    const innNum = idx + 1;
+    const teamName = team === 'away' ? G.away : G.home;
+    const current = G.innings[idx][team];
+    const proposed = Math.max(0, current + d);
+    const changeStr = d > 0 ? `+${d} (${current} → ${proposed})` : `${d} (${current} → ${proposed})`;
+    document.getElementById('score-confirm-body').innerHTML =
+      `You are about to change <strong>${teamName}</strong>'s score for <strong>Inning ${innNum}</strong> by <strong>${changeStr}</strong>.<br><br>Are you sure this isn't a misclick?`;
+    document.getElementById('score-confirm-modal').classList.add('show');
+    return;
+  }
+  applyScoreChange(idx, team, d);
+}
+
+function applyScoreChange(idx, team, d){
+  G.innings[idx][team] = Math.max(0, G.innings[idx][team] + d);
+  updTotals(); renderTable(); updateRunRule();
+}
+
+function confirmScoreChange(){
+  if(_pendingScore){
+    applyScoreChange(_pendingScore.idx, _pendingScore.team, _pendingScore.d);
+    _pendingScore = null;
+  }
+  document.getElementById('score-confirm-modal').classList.remove('show');
+}
+
+function dismissScoreConfirm(){
+  _pendingScore = null;
+  document.getElementById('score-confirm-modal').classList.remove('show');
 }
 function updTotals(){
   let a=0,h=0;G.innings.forEach(i=>{a+=i.away;h+=i.home;});
