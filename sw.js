@@ -1,7 +1,7 @@
 // Umpire Assistant — Service Worker
 // Caches the app shell so it works fully offline once installed.
 
-const CACHE_NAME = 'umpire-assistant-v0-17';
+const CACHE_NAME = 'umpire-assistant-v0-19b';
 const ASSETS = [
   './',
   './index.html',

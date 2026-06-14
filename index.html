@@ -13,6 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="Umpire">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" href="./icon-192.png">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 
 <style>
 /* ── PRINT / PDF EXPORT ── */
@@ -1241,7 +1244,7 @@ let _leagues = [
     "cutoff": 80,
     "cr": 7,
     "mercy": 12,
-    "rules": "<ul><li>6/4 Batting Order, no more than 2 males in a row.</li><li>Rotating Females if there are extra males in the lineup.</li><li>HR Match +2, walk off/hit and sit. Out on subsequent HRs.</li><li>10 min grace, 1hr-25 min game time.</li><li>8 players min, must be 3 females. If only 3 females, only 9 can play total.</li><li>No Throws from outfield to 1st.</li><li>7 courtesies can be used, player can courtesy multiple times, pitcher gets free courtesy if they are on one base with 2 outs and wearing additional protective gear.</li><li>If female is pitching, male must catch, but home plate can be covered by any player after ball is put into play.</li><li>Game considered complete after 5 innings.</li><li>Tagging allowed between commitment line and safety line.</li><li>If a male is walked and a female is next in the lineup, the male is given two bases and the female still bats. This is nullified if the wrong player is in the warm up circle.</li><li>All pitchers must wear face masks.</li><li>No smoking or drinking alcohol at the park.</li></ul>",
+    "rules": "<ul><li>6/4 Batting Order, no more than 2 males in a row.</li><li>Rotating Females if there are extra males in the lineup.</li><li>HR Match +2, walk off/hit and sit. Out on subsequent HRs.</li><li>10 min grace, 1hr-25 min game time.</li><li>8 players min, must be 3 females. If only 3 females, only 9 can play total.</li><li>No Throws from outfield to 1st.</li><li>7 courtesies can be used per game. Pitcher gets free courtesy if on one base with 2 outs and wearing protective gear.</li><li>If female is pitching, male must catch, but home plate can be covered by any player after ball is in play.</li><li>Game considered complete after 5 innings.</li><li>Tagging allowed between commitment line and safety line.</li><li>If a male is walked and a female is next in the lineup, the male gets two bases and the female still bats. Nullified if wrong player is in warm up circle.</li><li>All pitchers must wear face masks.</li><li>No smoking or drinking alcohol at the park.</li></ul>",
     "id": "league_1781441692141"
   },
   {
@@ -1252,7 +1255,7 @@ let _leagues = [
     "cutoff": 90,
     "cr": 7,
     "mercy": 12,
-    "rules": "<ul><li>Base paths = 70ft.</li><li>7 runs per inning mercy. 12 runs after 6 innings, 19 after 5, 26 after 4.</li><li>Game is officially played after 5 innings.</li><li>8 players minimum required to start game.</li><li>No new inning starts after 10:45 (during second game). No new inning after 90 min for first game.</li><li>For triple-headers: Game 1 starts 7:00PM, no new inning after 8:10PM (70 min). Game 2 starts 8:20PM, no new inning after 9:30PM (70 min). Game 3 starts 9:40PM, no new inning after 10:50PM (70 min).</li><li>Player removed from lineup is skipped and not counted as out. If players assist due to injury, they are also skipped and can re-enter when they return.</li><li>If game is tied after 8 innings, and time permits, play an additional inning with international rules (1 out, runner at 2nd to start).</li><li>Straight substitution with re-entry rule. Any player may be changed offensively or defensively at any time and re-enter at a later time.</li><li>HR Match 2+, any additional HRs are outs. Ball going over fence after striking defensive player is not counted in the match +2 count.</li><li>No tagging between commitment line and safe line.</li></ul>",
+    "rules": "<ul><li>Base paths = 70ft.</li><li>7 runs per inning mercy. 12 runs after 6 innings, 19 after 5, 26 after 4.</li><li>Game officially played after 5 innings.</li><li>8 players minimum to start.</li><li>No new inning after 90 min (first game) or after 10:45 (second game).</li><li>Triple-headers: Game 1 at 7:00PM cutoff 8:10PM. Game 2 at 8:20PM cutoff 9:30PM. Game 3 at 9:40PM cutoff 10:50PM.</li><li>Player removed from lineup is skipped, not an out. Injured assist players are also skipped and can re-enter later.</li><li>Tied after 8 innings: play extra inning with international rules (1 out, runner at 2nd) if time permits.</li><li>Straight substitution with re-entry. Any player may be changed at any time and re-enter later.</li><li>HR Match 2+, additional HRs are outs. Ball over fence after hitting fielder does not count toward match.</li><li>No tagging between commitment line and safe line.</li></ul>",
     "id": "league_1781442238197"
   },
   {
@@ -1273,58 +1276,18 @@ let _selectedLeagueId=null;
 let _editingLeagueId=null;
 
 function persistLeagues(){
-  // Re-fetch the original HTML source, splice in the new league data,
-  // then offer the result as a file download.
-  const src = document.documentElement.outerHTML;
-  const newData = 'let _leagues = ' + JSON.stringify(_leagues, null, 2) + ';';
-  const updated = src.replace(
-    /\/\*LEAGUES_DATA_START\*\/[\s\S]*?\/\*LEAGUES_DATA_END\*\//,
-    '/*LEAGUES_DATA_START*/
-let _leagues = [
-  {
-    "name": "Friday Night Aurora Mixed Slo Pitch League",
-    "inn": 9,
-    "limit": 85,
-    "mpi": 10,
-    "cutoff": 80,
-    "cr": 7,
-    "mercy": 12,
-    "rules": "<ul><li>6/4 Batting Order, no more than 2 males in a row.</li><li>Rotating Females if there are extra males in the lineup.</li><li>HR Match +2, walk off/hit and sit. Out on subsequent HRs.</li><li>10 min grace, 1hr-25 min game time.</li><li>8 players min, must be 3 females. If only 3 females, only 9 can play total.</li><li>No Throws from outfield to 1st.</li><li>7 courtesies can be used, player can courtesy multiple times, pitcher gets free courtesy if they are on one base with 2 outs and wearing additional protective gear.</li><li>If female is pitching, male must catch, but home plate can be covered by any player after ball is put into play.</li><li>Game considered complete after 5 innings.</li><li>Tagging allowed between commitment line and safety line.</li><li>If a male is walked and a female is next in the lineup, the male is given two bases and the female still bats. This is nullified if the wrong player is in the warm up circle.</li><li>All pitchers must wear face masks.</li><li>No smoking or drinking alcohol at the park.</li></ul>",
-    "id": "league_1781441692141"
-  },
-  {
-    "name": "York Region Mens Slo-Pitch League",
-    "inn": 8,
-    "limit": 100,
-    "mpi": 10,
-    "cutoff": 90,
-    "cr": 7,
-    "mercy": 12,
-    "rules": "<ul><li>Base paths = 70ft.</li><li>7 runs per inning mercy. 12 runs after 6 innings, 19 after 5, 26 after 4.</li><li>Game is officially played after 5 innings.</li><li>8 players minimum required to start game.</li><li>No new inning starts after 10:45 (during second game). No new inning after 90 min for first game.</li><li>For triple-headers: Game 1 starts 7:00PM, no new inning after 8:10PM (70 min). Game 2 starts 8:20PM, no new inning after 9:30PM (70 min). Game 3 starts 9:40PM, no new inning after 10:50PM (70 min).</li><li>Player removed from lineup is skipped and not counted as out. If players assist due to injury, they are also skipped and can re-enter when they return.</li><li>If game is tied after 8 innings, and time permits, play an additional inning with international rules (1 out, runner at 2nd to start).</li><li>Straight substitution with re-entry rule. Any player may be changed offensively or defensively at any time and re-enter at a later time.</li><li>HR Match 2+, any additional HRs are outs. Ball going over fence after striking defensive player is not counted in the match +2 count.</li><li>No tagging between commitment line and safe line.</li></ul>",
-    "id": "league_1781442238197"
-  },
-  {
-    "name": "Major League Baseball (MLB)",
-    "inn": 9,
-    "limit": 999,
-    "mpi": 19,
-    "cutoff": 999,
-    "cr": 0,
-    "mercy": 0,
-    "rules": "<p>Standard MLB rules apply. No time limit. No courtesy runners. No mercy rule.</p>",
-    "id": "league_1781442377037"
-  }
-];
-/*LEAGUES_DATA_END*/'
-  );
+  const marker_start = '/*LEAGUES_DATA_START*/';
+  const marker_end   = '/*LEAGUES_DATA_END*/';
+  const newData = marker_start + '\nlet _leagues = ' + JSON.stringify(_leagues, null, 2) + ';\n' + marker_end;
+  const html = document.documentElement.outerHTML;
+  const startIdx = html.indexOf(marker_start);
+  const endIdx   = html.indexOf(marker_end) + marker_end.length;
+  const updated  = html.slice(0, startIdx) + newData + html.slice(endIdx);
   const blob = new Blob([updated], {type:'text/html'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href = url;
-  a.download = 'index.html';
-  a.click();
+  a.href = url; a.download = 'index.html'; a.click();
   URL.revokeObjectURL(url);
-  // Show confirmation
   showSaveBanner();
 }
 
