@@ -1,7 +1,9 @@
-<html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>⚾ Umpire Assistant v0.14</title>
+<title>⚾ Umpire Assistant v0.17</title>
 
 <!-- PWA -->
 <link rel="manifest" href="./manifest.json">
@@ -69,8 +71,8 @@
   --radius:   10px;
   --radius-sm:6px;
 }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-.app { max-width: 680px; margin: 0 auto; padding: 16px; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; min-height: 100dvh; /* safe area insets so content clears the Dynamic Island & status bar */ padding-top: env(safe-area-inset-top); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+.app { max-width: 680px; margin: 0 auto; padding: 16px; /* extra breathing room below the Dynamic Island on top of the env() body padding */ padding-top: 12px; }
 
 /* ── TOP BAR ── */
 .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -224,6 +226,36 @@ tr.locked td { color: var(--text3); font-style: italic; }
 .league-card.selected .league-check { background: var(--blue-bg); border-color: var(--blue-bd); color: var(--blue-tx); }
 .league-edit-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
 .league-edit-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+
+/* ── RICH TEXT EDITOR ── */
+.rte-wrap { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.rte-toolbar { display: flex; gap: 2px; padding: 6px 8px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.rte-btn { padding: 4px 9px; font-size: 13px; font-family: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; color: var(--text); line-height: 1.2; }
+.rte-btn:hover { background: var(--blue-bg); border-color: var(--blue-bd); color: var(--blue-tx); }
+.rte-btn.active { background: var(--blue-bg); border-color: var(--blue-bd); color: var(--blue-tx); font-weight: 700; }
+.rte-editor { min-height: 160px; max-height: 320px; overflow-y: auto; padding: 10px 12px; font-size: 14px; line-height: 1.6; color: var(--text); background: var(--surface); outline: none; }
+.rte-editor:empty::before { content: attr(data-placeholder); color: var(--text3); pointer-events: none; }
+.rte-editor h2 { font-size: 16px; font-weight: 700; margin: 6px 0 3px; }
+.rte-editor h3 { font-size: 14px; font-weight: 700; margin: 4px 0 2px; }
+.rte-editor ul, .rte-editor ol { padding-left: 20px; margin: 4px 0; }
+.rte-editor li { margin: 2px 0; }
+.rte-editor b, .rte-editor strong { font-weight: 700; }
+.rte-editor i, .rte-editor em { font-style: italic; }
+.rte-editor u { text-decoration: underline; }
+.rte-editor hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+/* ── RULES PANE ── */
+.rules-pane-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.rules-display { font-size: 14px; line-height: 1.7; color: var(--text); }
+.rules-display h2 { font-size: 16px; font-weight: 700; margin: 10px 0 4px; color: var(--blue-tx); }
+.rules-display h3 { font-size: 14px; font-weight: 700; margin: 8px 0 3px; }
+.rules-display ul, .rules-display ol { padding-left: 20px; margin: 4px 0 8px; }
+.rules-display li { margin: 3px 0; }
+.rules-display b, .rules-display strong { font-weight: 700; }
+.rules-display i, .rules-display em { font-style: italic; }
+.rules-display hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.rules-empty { font-size: 14px; color: var(--text3); font-style: italic; text-align: center; padding: 40px 20px; }
+
 </style>
 </head>
 <body>
@@ -236,64 +268,19 @@ tr.locked td { color: var(--text3); font-style: italic; }
 <div id="league-view">
   <div class="top-bar">
     <div>
-      <div class="top-bar-title">⚾ Umpire Assistant <span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:4px;">v0.14</span></div>
+      <div class="top-bar-title">⚾ Umpire Assistant <span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:4px;">v0.17</span></div>
       <div class="top-bar-sub">Select your league to begin</div>
     </div>
   </div>
 
   <div class="card">
     <div class="section-lbl">Choose a league</div>
-    <div class="league-grid" id="league-grid"><div class="league-card" onclick="selectLeague('league_1781289417574')">
-      <div class="league-card-info">
-        <div class="league-card-name">Friday Night Aurora Mixed Slo Pitch League</div>
-        <div class="league-card-pills">
-          <span class="league-pill">9 inn</span>
-          <span class="league-pill">85min</span>
-          <span class="league-pill">7 runners</span>
-          <span class="league-pill">Mercy: +12</span>
-          <span class="league-pill">Cutoff: 80m</span>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('league_1781289417574')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
-        <div class="league-check"></div>
-      </div>
-    </div><div class="league-card" onclick="selectLeague('league_1781289500503')">
-      <div class="league-card-info">
-        <div class="league-card-name">Men's YRMSPL League</div>
-        <div class="league-card-pills">
-          <span class="league-pill">8 inn</span>
-          <span class="league-pill">100min</span>
-          <span class="league-pill">7 runners</span>
-          <span class="league-pill">Mercy: +12</span>
-          <span class="league-pill">Cutoff: 90m</span>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('league_1781289500503')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
-        <div class="league-check"></div>
-      </div>
-    </div><div class="league-card selected" onclick="selectLeague('league_1781289540431')">
-      <div class="league-card-info">
-        <div class="league-card-name">MLB</div>
-        <div class="league-card-pills">
-          <span class="league-pill">9 inn</span>
-          <span class="league-pill">999min</span>
-          <span class="league-pill">No runners</span>
-          <span class="league-pill">Mercy: +0</span>
-          <span class="league-pill">Cutoff: 999m</span>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="btn-neutral" onclick="event.stopPropagation();editLeague('league_1781289540431')" style="font-size:11px;padding:4px 8px;">✏ Edit</button>
-        <div class="league-check">✓</div>
-      </div>
-    </div></div>
+    <div class="league-grid" id="league-grid"></div>
     <button class="btn-neutral" onclick="showAddLeague()" style="width:100%;justify-content:center;margin-bottom:0;">+ Add new league</button>
   </div>
 
   <!-- Add / Edit league panel -->
-  <div class="league-edit-panel" id="league-edit-panel" style="display: none;">
+  <div class="league-edit-panel" id="league-edit-panel" style="display:none;">
     <div class="league-edit-title">
       <span id="league-edit-title-text">New league</span>
       <button class="btn-neutral" onclick="cancelEditLeague()" style="font-size:12px;padding:4px 10px;">Cancel</button>
@@ -304,7 +291,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <select id="le-inn">
           <option value="3">3</option><option value="4">4</option><option value="5">5</option>
           <option value="6">6</option><option value="7">7</option><option value="8">8</option>
-          <option value="9" selected="">9</option><option value="10">10</option>
+          <option value="9" selected>9</option><option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Time limit (min)</label><input type="number" id="le-limit" value="85" min="10" max="300"></div>
@@ -315,20 +302,40 @@ tr.locked td { color: var(--text3); font-style: italic; }
           <option value="0">None</option>
           <option value="1">1</option><option value="2">2</option><option value="3">3</option>
           <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7" selected="">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
           <option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Mercy rule — runs lead after 6 inn.</label><input type="number" id="le-mercy" value="6" min="1" max="30"></div>
     </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:6px;">Special rules <span style="font-weight:400;color:var(--text3)">(formatted text — visible during game)</span></label>
+      <div class="rte-wrap">
+        <div class="rte-toolbar">
+          <button class="rte-btn" onclick="rteCmd('bold')" title="Bold"><b>B</b></button>
+          <button class="rte-btn" onclick="rteCmd('italic')" title="Italic"><i>I</i></button>
+          <button class="rte-btn" onclick="rteCmd('underline')" title="Underline"><u>U</u></button>
+          <span style="width:1px;background:var(--border);margin:0 4px;"></span>
+          <button class="rte-btn" onclick="rteHeading('h2')" title="Heading">H2</button>
+          <button class="rte-btn" onclick="rteHeading('h3')" title="Sub-heading">H3</button>
+          <span style="width:1px;background:var(--border);margin:0 4px;"></span>
+          <button class="rte-btn" onclick="rteCmd('insertUnorderedList')" title="Bullet list">• List</button>
+          <button class="rte-btn" onclick="rteCmd('insertOrderedList')" title="Numbered list">1. List</button>
+          <span style="width:1px;background:var(--border);margin:0 4px;"></span>
+          <button class="rte-btn" onclick="rteHr()" title="Divider">—</button>
+          <button class="rte-btn" onclick="rteClear()" title="Clear all" style="margin-left:auto;color:var(--red-tx);">✕ Clear</button>
+        </div>
+        <div class="rte-editor" id="le-rules" contenteditable="true" data-placeholder="Enter any special league rules here — e.g. no leading off, bat flip rules, tie-break procedures…"></div>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn-primary" onclick="saveLeague()" style="flex:1;justify-content:center;">✓ Save league</button>
-      <button class="btn-red" id="le-delete-btn" onclick="deleteLeague()" style="display: none; padding: 8px 14px;">🗑 Delete</button>
+      <button class="btn-red" id="le-delete-btn" onclick="deleteLeague()" style="display:none;padding:8px 14px;">🗑 Delete</button>
     </div>
   </div>
 
   <div style="margin-top:4px;">
-    <button class="btn-primary" id="btn-league-next" onclick="goToGameSetup()" style="width:100%;justify-content:center;padding:11px;">Continue to game setup →</button>
+    <button class="btn-primary" id="btn-league-next" onclick="goToGameSetup()" style="width:100%;justify-content:center;padding:11px;" disabled>Continue to game setup →</button>
   </div>
 </div>
 
@@ -354,7 +361,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <select id="s-inn">
           <option value="3">3</option><option value="4">4</option><option value="5">5</option>
           <option value="6">6</option><option value="7">7</option><option value="8">8</option>
-          <option value="9" selected="">9</option><option value="10">10</option>
+          <option value="9" selected>9</option><option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Time limit (min)</label><input type="number" id="s-limit" value="85" min="10" max="300"></div>
@@ -363,7 +370,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
     </div>
     <hr class="divider">
     <div class="section-lbl">Inning start cutoff</div>
-    <div class="check-row"><input type="checkbox" id="s-cutoff-en" checked="" onchange="toggleCutoffField()"><label for="s-cutoff-en">Enable inning start cutoff</label></div>
+    <div class="check-row"><input type="checkbox" id="s-cutoff-en" checked onchange="toggleCutoffField()"><label for="s-cutoff-en">Enable inning start cutoff</label></div>
     <div id="cutoff-wrap" class="grid2">
       <div class="field"><label>No new inning after (min)</label><input type="number" id="s-cutoff" value="80" min="1" max="300"></div>
       <div class="field" style="padding-top:18px;font-size:11px;color:var(--text3)">"Next inning" locks once this time passes.</div>
@@ -376,12 +383,12 @@ tr.locked td { color: var(--text3); font-style: italic; }
           <option value="0">None (disabled)</option>
           <option value="1">1</option><option value="2">2</option><option value="3">3</option>
           <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7" selected="">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
           <option value="10">10</option>
         </select>
       </div>
       <div class="field"><label>Reset each inning?</label>
-        <select id="s-cr-reset"><option value="no" selected="">No — per game</option><option value="yes">Yes — per inning</option></select>
+        <select id="s-cr-reset"><option value="no" selected>No — per game</option><option value="yes">Yes — per inning</option></select>
       </div>
     </div>
     <hr class="divider">
@@ -407,9 +414,10 @@ tr.locked td { color: var(--text3); font-style: italic; }
   </div>
 
   <div class="tab-bar no-print">
-    <button class="tab-btn active" id="tab-game" onclick="switchTab('game')">📊 Game</button>
-    <button class="tab-btn" id="tab-clicker" onclick="switchTab('clicker')">🖱 Clicker</button>
-    <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">📝 Notes <span class="note-badge" id="note-badge"></span></button>
+    <button class="tab-btn active" id="tab-game"    onclick="switchTab('game')">📊 Game</button>
+    <button class="tab-btn"        id="tab-clicker" onclick="switchTab('clicker')">🖱 Clicker</button>
+    <button class="tab-btn"        id="tab-notes"   onclick="switchTab('notes')">📝 Notes <span class="note-badge" id="note-badge"></span></button>
+    <button class="tab-btn"        id="tab-rules"   onclick="switchTab('rules')">📋 Rules</button>
   </div>
 
   <!-- GAME PANE -->
@@ -437,7 +445,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <!-- Left: minute adjustment controls -->
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:2px;">Adjust</div>
-          <button class="btn-amber" onclick="adjustClock(1)" style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Add 1 minute">+1m</button>
+          <button class="btn-amber" onclick="adjustClock(1)"  style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Add 1 minute">+1m</button>
           <button class="btn-amber" onclick="adjustClock(-1)" style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Subtract 1 minute">−1m</button>
         </div>
         <!-- Right: clock -->
@@ -452,12 +460,12 @@ tr.locked td { color: var(--text3); font-style: italic; }
         <div class="prog-lbl">Inning cutoff</div>
       </div>
       <div class="btn-row">
-        <button class="btn-green" id="btn-start" onclick="toggleTimer()">▶ Start</button>
-        <button class="btn-primary" id="btn-next" onclick="nextInning()">→ Next inning</button>
-        <button class="btn-red" id="btn-end" onclick="endGame()">⚑ End game</button>
+        <button class="btn-green"   id="btn-start" onclick="toggleTimer()">▶ Start</button>
+        <button class="btn-primary" id="btn-next"  onclick="nextInning()">→ Next inning</button>
+        <button class="btn-red"     id="btn-end"   onclick="endGame()">⚑ End game</button>
       </div>
       <div class="btn-row" style="margin-top:6px;">
-        <button class="btn-neutral" id="btn-undo-inn" onclick="undoInning()" style="font-size:12px;" disabled="">↩ Undo last inning</button>
+        <button class="btn-neutral" id="btn-undo-inn" onclick="undoInning()" style="font-size:12px;" disabled>↩ Undo last inning</button>
         <button class="btn-neutral" id="btn-undo-end" onclick="undoEndGame()" style="font-size:12px;display:none;">↩ Undo end game</button>
       </div>
     </div>
@@ -504,7 +512,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
   <div class="pane no-print" id="pane-clicker">
     <div class="clicker-section">
       <div class="click-card">
-        <div class="click-header"><span class="click-title balls">Balls</span><div class="pip-row" id="pip-ball"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div></div>
+        <div class="click-header"><span class="click-title balls">Balls</span><div class="pip-row" id="pip-ball"></div></div>
         <div class="click-body">
           <div class="click-num" id="cn-ball">0</div>
           <div class="click-col">
@@ -514,7 +522,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         </div>
       </div>
       <div class="click-card">
-        <div class="click-header"><span class="click-title strikes">Strikes</span><div class="pip-row" id="pip-strike"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div></div>
+        <div class="click-header"><span class="click-title strikes">Strikes</span><div class="pip-row" id="pip-strike"></div></div>
         <div class="click-body">
           <div class="click-num" id="cn-strike">0</div>
           <div class="click-col">
@@ -524,7 +532,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
         </div>
       </div>
       <div class="click-card">
-        <div class="click-header"><span class="click-title outs">Outs</span><div class="out-diamonds" id="out-diamonds"><div class="diamond"></div><div class="diamond"></div><div class="diamond"></div></div></div>
+        <div class="click-header"><span class="click-title outs">Outs</span><div class="out-diamonds" id="out-diamonds"></div></div>
         <div class="click-body">
           <div class="click-num" id="cn-out">0</div>
           <div class="click-col">
@@ -564,6 +572,21 @@ tr.locked td { color: var(--text3); font-style: italic; }
       </div>
     </div>
   </div>
+
+  <!-- RULES PANE -->
+  <div class="pane no-print" id="pane-rules">
+    <div class="card" style="margin-top:4px;">
+      <div class="rules-pane-header">
+        <div>
+          <div class="section-lbl" style="margin-bottom:0;">Special rules</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;" id="rules-league-label">—</div>
+        </div>
+        <span id="rules-clock-badge" style="font-size:11px;background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green-tx);padding:3px 9px;border-radius:20px;font-weight:600;">⏱ Clock running</span>
+      </div>
+      <div id="rules-display" class="rules-display"></div>
+    </div>
+  </div>
+
 </div><!-- /game-view -->
 
 </div><!-- /app -->
@@ -636,6 +659,12 @@ function setSound(n){
   playClick(true);
 }
 
+// ── Rich text editor helpers ──
+function rteCmd(cmd){ document.getElementById('le-rules').focus(); document.execCommand(cmd,false,null); }
+function rteHeading(tag){ document.getElementById('le-rules').focus(); document.execCommand('formatBlock',false,tag); }
+function rteHr(){ document.getElementById('le-rules').focus(); document.execCommand('insertHTML',false,'<hr>'); }
+function rteClear(){ if(confirm('Clear all special rules text?')) document.getElementById('le-rules').innerHTML=''; }
+
 // ── Clicker ──
 let ck={ball:0,strike:0,out:0};
 const LIM={ball:4,strike:3,out:3};
@@ -653,10 +682,23 @@ function renderClicker(){
 
 // ── Tabs ──
 function switchTab(t){
-  ['game','clicker','notes'].forEach(n=>{
+  ['game','clicker','notes','rules'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('active',n===t);
     document.getElementById('pane-'+n).classList.toggle('active',n===t);
   });
+  if(t==='rules') updateRulesBadge();
+}
+
+function updateRulesBadge(){
+  const badge=document.getElementById('rules-clock-badge');
+  if(!badge)return;
+  if(G.running){
+    badge.style.background='var(--green-bg)';badge.style.borderColor='var(--green-bd)';badge.style.color='var(--green-tx)';
+    badge.textContent='⏱ Clock running';
+  } else {
+    badge.style.background='var(--amber-bg)';badge.style.borderColor='var(--amber-bd)';badge.style.color='var(--amber-tx)';
+    badge.textContent='⏸ Clock paused';
+  }
 }
 
 // ── Setup ──
@@ -741,6 +783,16 @@ function startGame(){
   document.getElementById('m-rem').textContent=fmtS(G.tlSecs);
   document.getElementById('m-final-inn').textContent='—';
   document.getElementById('m-final-inn').className='metric-val';
+  // Rules pane
+  const leagueRules=document.getElementById('setup-view').dataset.leagueRules||'';
+  const leagueName=document.getElementById('setup-view').dataset.leagueName||'';
+  const rulesDisplay=document.getElementById('rules-display');
+  if(leagueRules && leagueRules.trim() && leagueRules.trim()!=='<br>'){
+    rulesDisplay.innerHTML=leagueRules;
+  } else {
+    rulesDisplay.innerHTML='<div class="rules-empty">No special rules have been entered for this league.<br><br>You can add them by editing the league from the league selector.</div>';
+  }
+  document.getElementById('rules-league-label').textContent=leagueName?'League: '+leagueName:'';
   switchTab('game');renderClicker();renderTable();updateMetrics();updateRunRule();
   // Auto-note: game start + weather
   fetchWeather().then(wx=>{
@@ -767,6 +819,7 @@ function toggleTimer(){
     document.getElementById('btn-start').textContent='▶ Resume';
     document.getElementById('btn-start').className='btn-green';
     setStatus('⏸ Paused','var(--amber-bg)','var(--amber-tx)');
+    updateRulesBadge();
   } else {
     // Start / Resume: record the epoch we resumed from
     G.clockEpoch = Date.now();
@@ -776,6 +829,7 @@ function toggleTimer(){
     document.getElementById('btn-start').textContent='⏸ Pause';
     document.getElementById('btn-start').className='btn-red';
     setStatus('● Live','var(--green-bg)','var(--green-tx)');
+    updateRulesBadge();
     updateEndTime();
   }
 }
@@ -1178,38 +1232,7 @@ renderClicker();
 // copy of this HTML with your leagues baked in permanently.
 
 /*LEAGUES_DATA_START*/
-let _leagues = [
-  {
-    "name": "Friday Night Aurora Mixed Slo Pitch League",
-    "inn": 9,
-    "limit": 85,
-    "mpi": 14,
-    "cutoff": 80,
-    "cr": 7,
-    "mercy": 12,
-    "id": "league_1781289417574"
-  },
-  {
-    "name": "Men's YRMSPL League",
-    "inn": 8,
-    "limit": 100,
-    "mpi": 12,
-    "cutoff": 90,
-    "cr": 7,
-    "mercy": 12,
-    "id": "league_1781289500503"
-  },
-  {
-    "name": "MLB",
-    "inn": 9,
-    "limit": 999,
-    "mpi": 15,
-    "cutoff": 999,
-    "cr": 0,
-    "mercy": 0,
-    "id": "league_1781289540431"
-  }
-];
+let _leagues = [];
 /*LEAGUES_DATA_END*/
 
 let _selectedLeagueId=null;
@@ -1294,6 +1317,7 @@ function showAddLeague(){
   document.getElementById('le-cutoff').value='80';
   document.getElementById('le-cr').value='7';
   document.getElementById('le-mercy').value='6';
+  document.getElementById('le-rules').innerHTML='';
   document.getElementById('le-delete-btn').style.display='none';
   document.getElementById('league-edit-panel').style.display='block';
   document.getElementById('le-name').focus();
@@ -1310,6 +1334,7 @@ function editLeague(id){
   document.getElementById('le-cutoff').value=l.cutoff;
   document.getElementById('le-cr').value=l.cr;
   document.getElementById('le-mercy').value=l.mercy;
+  document.getElementById('le-rules').innerHTML=l.rules||'';
   document.getElementById('le-delete-btn').style.display='inline-flex';
   document.getElementById('league-edit-panel').style.display='block';
 }
@@ -1329,7 +1354,8 @@ function saveLeague(){
     mpi:parseInt(document.getElementById('le-mpi').value),
     cutoff:parseInt(document.getElementById('le-cutoff').value),
     cr:parseInt(document.getElementById('le-cr').value),
-    mercy:parseInt(document.getElementById('le-mercy').value)
+    mercy:parseInt(document.getElementById('le-mercy').value),
+    rules:document.getElementById('le-rules').innerHTML.trim()
   };
   if(_editingLeagueId){
     const idx=_leagues.findIndex(x=>x.id===_editingLeagueId);
@@ -1373,6 +1399,9 @@ function goToGameSetup(){
   document.getElementById('s-date').value=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   document.getElementById('setup-league-name').textContent='⚾ '+l.name;
   document.getElementById('setup-league-sub').textContent='Game setup — settings pre-filled from league';
+  // Store rules for in-game display
+  document.getElementById('setup-view').dataset.leagueRules=l.rules||'';
+  document.getElementById('setup-view').dataset.leagueName=l.name;
   document.getElementById('league-view').style.display='none';
   document.getElementById('setup-view').style.display='block';
 }
@@ -1388,6 +1417,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-
-
-<div id="save-banner" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgb(30, 80, 22); color: rgb(216, 240, 212); padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; z-index: 9999; box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 12px; display: none;">✓ index.html downloaded — re-upload it to your GitHub repo to save leagues permanently.</div></body></html>
+</body>
+</html>
