@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>⚾ Umpire Assistant v0.19</title>
+<title>⚾ Umpire Assistant v0.21</title>
 
 <!-- PWA -->
 <link rel="manifest" href="./manifest.json">
@@ -283,7 +283,7 @@ tr.locked td { color: var(--text3); font-style: italic; }
 <div id="league-view">
   <div class="top-bar">
     <div>
-      <div class="top-bar-title">⚾ Umpire Assistant <span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:4px;">v0.19</span></div>
+      <div class="top-bar-title">⚾ Umpire Assistant <span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:4px;">v0.21</span></div>
       <div class="top-bar-sub">Select your league to begin</div>
     </div>
   </div>
@@ -635,6 +635,21 @@ tr.locked td { color: var(--text3); font-style: italic; }
   </div>
 </div>
 
+<!-- ══ PAUSE CONFIRM MODAL ══ -->
+<div class="modal-overlay" id="pause-confirm-modal">
+  <div class="modal-box">
+    <div class="modal-icon">⏸</div>
+    <div class="modal-title">Pause the game clock?</div>
+    <div class="modal-body">
+      The game clock is currently running. Are you sure you want to <strong>pause</strong> it?
+    </div>
+    <div class="modal-btns">
+      <button class="btn-neutral" onclick="dismissPauseConfirm()">Keep running</button>
+      <button class="btn-amber"   onclick="confirmPause()">Yes, pause</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -876,26 +891,43 @@ function getElapsed(){
 
 function toggleTimer(){
   if(G.running){
-    // Pause: bank how much time has elapsed up to now
-    G.elapsed = getElapsed();
-    G.running = false;
-    clearInterval(G.ivl);
-    document.getElementById('btn-start').textContent='▶ Resume';
-    document.getElementById('btn-start').className='btn-green';
-    setStatus('⏸ Paused','var(--amber-bg)','var(--amber-tx)');
-    updateRulesBadge();
+    // Show confirmation before pausing
+    document.getElementById('pause-confirm-modal').classList.add('show');
   } else {
-    // Start / Resume: record the epoch we resumed from
-    G.clockEpoch = Date.now();
-    if(!G.startTime) G.startTime = new Date(Date.now() - G.elapsed * 1000);
-    G.running = true;
-    G.ivl = setInterval(tick, 500); // 500ms poll so display stays smooth
-    document.getElementById('btn-start').textContent='⏸ Pause';
-    document.getElementById('btn-start').className='btn-red';
-    setStatus('● Live','var(--green-bg)','var(--green-tx)');
-    updateRulesBadge();
-    updateEndTime();
+    // Start / Resume — no confirmation needed, act immediately
+    startOrResume();
   }
+}
+
+function startOrResume(){
+  G.clockEpoch = Date.now();
+  if(!G.startTime) G.startTime = new Date(Date.now() - G.elapsed * 1000);
+  G.running = true;
+  G.ivl = setInterval(tick, 500);
+  document.getElementById('btn-start').textContent='⏸ Pause';
+  document.getElementById('btn-start').className='btn-red';
+  setStatus('● Live','var(--green-bg)','var(--green-tx)');
+  updateRulesBadge();
+  updateEndTime();
+}
+
+function doPause(){
+  G.elapsed = getElapsed();
+  G.running = false;
+  clearInterval(G.ivl);
+  document.getElementById('btn-start').textContent='▶ Resume';
+  document.getElementById('btn-start').className='btn-green';
+  setStatus('⏸ Paused','var(--amber-bg)','var(--amber-tx)');
+  updateRulesBadge();
+}
+
+function confirmPause(){
+  document.getElementById('pause-confirm-modal').classList.remove('show');
+  doPause();
+}
+
+function dismissPauseConfirm(){
+  document.getElementById('pause-confirm-modal').classList.remove('show');
 }
 
 function setStatus(txt,bg,color){const el=document.getElementById('g-status');el.textContent=txt;el.style.background=bg;el.style.color=color;}
@@ -1204,7 +1236,7 @@ function endGame(){
     innStart:G.innStart, innings:JSON.parse(JSON.stringify(G.innings)),
     cReached:G.cReached
   };
-  if(G.running)toggleTimer();
+  if(G.running)doPause();
   const ci=G.curInn-1;
   if(ci<G.innings.length&&G.innings[ci].dur===null)G.innings[ci].dur=G.elapsed-G.innStart;
   setStatus('⚑ Final','var(--red-bg)','var(--red-tx)');
