@@ -446,12 +446,13 @@ tr.locked td { color: var(--text3); font-style: italic; }
       <div class="team-card" id="card-home"><div class="team-lbl" id="lbl-home">Home</div><div class="team-runs" id="tot-home">0</div></div>
     </div>
 
-    <div class="metrics no-print" style="grid-template-columns:repeat(5,1fr);">
+    <div class="metrics no-print" style="grid-template-columns:repeat(3,1fr);">
       <div class="metric"><div class="metric-lbl">Inning</div><div class="metric-val" id="m-inn">1</div></div>
       <div class="metric"><div class="metric-lbl">Elapsed</div><div class="metric-val" id="m-el">0:00</div></div>
       <div class="metric"><div class="metric-lbl">Remaining</div><div class="metric-val" id="m-rem">—</div></div>
       <div class="metric"><div class="metric-lbl">Expected end</div><div class="metric-val" id="m-end" style="font-size:13px;padding-top:3px;">—</div></div>
       <div class="metric"><div class="metric-lbl">Est. final inn.</div><div class="metric-val" id="m-final-inn" style="font-size:16px;padding-top:2px;">—</div></div>
+      <div class="metric"><div class="metric-lbl">Avg inn. length</div><div class="metric-val" id="m-avg-inn" style="font-size:15px;padding-top:2px;">—</div></div>
     </div>
 
     <div class="card no-print">
@@ -619,6 +620,21 @@ tr.locked td { color: var(--text3); font-style: italic; }
   </div>
 </div>
 
+<!-- ══ RESET GAME CONFIRM MODAL ══ -->
+<div class="modal-overlay" id="reset-confirm-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🔄</div>
+    <div class="modal-title">Reset game?</div>
+    <div class="modal-body">
+      This will <strong>end the current game</strong> and return you to the league selector. All game data will be lost. Are you sure?
+    </div>
+    <div class="modal-btns">
+      <button class="btn-neutral" onclick="dismissResetConfirm()">Cancel</button>
+      <button class="btn-red"     onclick="confirmReset()">Yes, reset</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -750,15 +766,30 @@ function wxDesc(code,temp,wind){
 
 async function fetchWeather(){
   return new Promise(resolve=>{
-    if(!navigator.geolocation){resolve('Weather unavailable (no location)');return;}
+    if(!navigator.geolocation){resolve({wx:'Weather unavailable (no location)',loc:''});return;}
     navigator.geolocation.getCurrentPosition(async pos=>{
       try{
         const {latitude:lat,longitude:lon}=pos.coords;
-        const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto`;
-        const r=await fetch(url);const d=await r.json();const c=d.current;
-        resolve(wxDesc(c.weathercode,c.temperature_2m,c.windspeed_10m));
-      }catch(e){resolve('Weather unavailable');}
-    },()=>resolve('Weather unavailable (location denied)'),{timeout:6000});
+        // Fetch weather and reverse geocode in parallel
+        const [weatherResp, geoResp] = await Promise.all([
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=celsius&windspeed_unit=kmh&timezone=auto`),
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+        ]);
+        const wd=await weatherResp.json();
+        const gd=await geoResp.json();
+        const c=wd.current;
+        const wx=wxDesc(c.weathercode,c.temperature_2m,c.windspeed_10m);
+        // Build a short location string: neighbourhood/suburb + city, or just city
+        const addr=gd.address||{};
+        const parts=[
+          addr.neighbourhood||addr.suburb||addr.hamlet||addr.village||addr.town||'',
+          addr.city||addr.town||addr.village||addr.county||''
+        ].filter(Boolean);
+        // De-dupe if suburb == city
+        const loc=[...new Set(parts)].join(', ');
+        resolve({wx, loc});
+      }catch(e){resolve({wx:'Weather unavailable',loc:''});}
+    },()=>resolve({wx:'Weather unavailable (location denied)',loc:''}),{timeout:8000});
   });
 }
 
@@ -813,6 +844,8 @@ function startGame(){
   document.getElementById('m-rem').textContent=fmtS(G.tlSecs);
   document.getElementById('m-final-inn').textContent='—';
   document.getElementById('m-final-inn').className='metric-val';
+  document.getElementById('m-avg-inn').textContent='—';
+  document.getElementById('m-avg-inn').className='metric-val';
   // Rules pane
   const leagueRules=document.getElementById('setup-view').dataset.leagueRules||'';
   const leagueName=document.getElementById('setup-view').dataset.leagueName||'';
@@ -825,8 +858,9 @@ function startGame(){
   document.getElementById('rules-league-label').textContent=leagueName?'League: '+leagueName:'';
   switchTab('game');renderClicker();renderTable();updateMetrics();updateRunRule();
   // Auto-note: game start + weather
-  fetchWeather().then(wx=>{
-    sysNote(`⚾ Game started — ${G.away} @ ${G.home} | 🌤 ${wx}`);
+  fetchWeather().then(({wx,loc})=>{
+    const locStr=loc?` 📍 ${loc} |`:'';
+    sysNote(`⚾ Game started — ${G.away} @ ${G.home} |${locStr} 🌤 ${wx}`);
   });
 }
 
@@ -977,17 +1011,28 @@ function updateMetrics(e){
   }
   const mFin=document.getElementById('m-final-inn');
   if(secsPerInn>0){
-    // Innings we can fit in the remaining time, added to current inning index
     const innRemaining=Math.floor(rem/secsPerInn);
     const estFinal=Math.min(G.curInn+innRemaining, G.numInn);
     const label='Inn. '+estFinal+(estFinal>=G.numInn?' ✓':'');
     mFin.textContent=label;
-    // Colour: green = full game expected, amber = 1 short, red = 2+ short
     const shortfall=G.numInn-estFinal;
     mFin.className='metric-val'+(shortfall===0?' ok':shortfall===1?' warn':' danger');
   } else {
     mFin.textContent='—';
     mFin.className='metric-val';
+  }
+
+  // ── Mean inning length ──
+  const mAvg=document.getElementById('m-avg-inn');
+  if(completed.length>0){
+    const meanSecs=Math.round(completed.reduce((s,i)=>s+i.dur,0)/completed.length);
+    mAvg.textContent=fmtS(meanSecs);
+    // Colour vs configured mpi: green = at/under, amber = up to 20% over, red = 20%+ over
+    const ratio=meanSecs/(G.mpi*60);
+    mAvg.className='metric-val'+(ratio<=1?' ok':ratio<=1.2?' warn':' danger');
+  } else {
+    mAvg.textContent='—';
+    mAvg.className='metric-val';
   }
 }
 
@@ -1173,8 +1218,9 @@ function endGame(){
   let a=0,h=0;G.innings.forEach(i=>{a+=i.away;h+=i.home;});
   const winner=a>h?G.away:h>a?G.home:'Tie';
   const scoreLine=a===h?`Final score: ${a}–${h} (Tie)`:`Final score: ${G.away} ${a}, ${G.home} ${h} — ${winner} wins`;
-  fetchWeather().then(wx=>{
-    sysNote(`🏁 Game ended (${fmtS(G.elapsed)} elapsed) | ${scoreLine} | 🌤 ${wx}`);
+  fetchWeather().then(({wx,loc})=>{
+    const locStr=loc?` 📍 ${loc} |`:'';
+    sysNote(`🏁 Game ended (${fmtS(G.elapsed)} elapsed) | ${scoreLine} |${locStr} 🌤 ${wx}`);
   });
 }
 
@@ -1201,6 +1247,12 @@ function undoEndGame(){
 }
 
 function resetGame(){
+  // Show confirmation modal instead of resetting immediately
+  document.getElementById('reset-confirm-modal').classList.add('show');
+}
+
+function confirmReset(){
+  document.getElementById('reset-confirm-modal').classList.remove('show');
   if(G.running){G.running=false;clearInterval(G.ivl);}
   document.getElementById('cutoff-alert').classList.remove('show');
   document.getElementById('run-rule-banner').classList.remove('show');
@@ -1209,6 +1261,10 @@ function resetGame(){
   document.getElementById('game-view').style.display='none';
   document.getElementById('league-view').style.display='block';
   renderLeagueGrid();
+}
+
+function dismissResetConfirm(){
+  document.getElementById('reset-confirm-modal').classList.remove('show');
 }
 
 // ── PDF EXPORT ──
@@ -1267,12 +1323,13 @@ function exportPDF(){
       <div style="display:flex;align-items:center;padding:0 12px;color:#888;font-size:14px;">vs</div>
       <div class="print-score-card"><div class="print-score-name">${G.home}</div><div class="print-score-runs">${h}</div></div>
     </div>
-    <div class="print-grid print-section" style="grid-template-columns:repeat(5,1fr);">
+    <div class="print-grid print-section" style="grid-template-columns:repeat(3,1fr);">
       <div class="print-metric"><div class="print-metric-lbl">Inning</div><div class="print-metric-val">${G.curInn}/${G.numInn}</div></div>
       <div class="print-metric"><div class="print-metric-lbl">Elapsed</div><div class="print-metric-val">${fmtS(e)}</div></div>
       <div class="print-metric"><div class="print-metric-lbl">Time limit</div><div class="print-metric-val">${Math.round(G.tlSecs/60)}m</div></div>
       <div class="print-metric"><div class="print-metric-lbl">Remaining</div><div class="print-metric-val">${fmtS(Math.max(0,G.tlSecs-e))}</div></div>
       <div class="print-metric"><div class="print-metric-lbl">Est. final inn.</div><div class="print-metric-val">${document.getElementById('m-final-inn').textContent}</div></div>
+      <div class="print-metric"><div class="print-metric-lbl">Avg inn. length</div><div class="print-metric-val">${document.getElementById('m-avg-inn').textContent}</div></div>
     </div>
     <div class="print-section">
       <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Inning by Inning</div>
