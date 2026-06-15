@@ -352,6 +352,13 @@ tr.locked td { color: var(--text3); font-style: italic; }
   <div style="margin-top:4px;">
     <button class="btn-primary" id="btn-league-next" onclick="goToGameSetup()" style="width:100%;justify-content:center;padding:11px;" disabled>Continue to game setup →</button>
   </div>
+
+  <!-- About -->
+  <div style="margin-top:20px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-align:center;">
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">⚾ Umpire Assistant</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:2px;">Designed by <strong>Jon Marier</strong></div>
+    <div style="font-size:12px;color:var(--text3);">© 2026 — v0.21</div>
+  </div>
 </div>
 
 <!-- ══ SETUP ══ -->
@@ -1593,10 +1600,27 @@ function goToGameSetup(){
 renderLeagueGrid();
 document.getElementById('s-date').value=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
-// ── PWA: register service worker for offline support ──
+// ── PWA: register service worker — always check for updates on load ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      // Force update check every time the page loads
+      reg.update();
+      // If a new SW is waiting, activate it immediately and reload
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version is ready — reload to apply it
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              window.location.reload();
+            });
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 </script>
