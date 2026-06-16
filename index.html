@@ -464,16 +464,20 @@ tr.locked td { color: var(--text3); font-style: italic; }
 
     <div class="card no-print">
       <div class="section-lbl">Game clock</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;">
         <!-- Left: minute adjustment controls -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;padding-top:4px;">
           <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:2px;">Adjust</div>
           <button class="btn-amber" onclick="adjustClock(1)"  style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Add 1 minute">+1m</button>
           <button class="btn-amber" onclick="adjustClock(-1)" style="width:52px;justify-content:center;font-size:18px;font-weight:700;padding:10px 0;" title="Subtract 1 minute">−1m</button>
         </div>
-        <!-- Right: clock -->
-        <div style="flex:1;text-align:right;">
-          <div class="timer-big" id="g-clock" style="margin:0;">0:00:00</div>
+        <!-- Right: game clock (top-right) + inning clock below -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <div class="timer-big" id="g-clock" style="margin:0;line-height:1;">0:00:00</div>
+          <div style="display:flex;align-items:center;gap:8px;align-self:flex-end;">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">Inning</div>
+            <div id="inn-clock" style="font-size:26px;font-weight:700;font-family:monospace;color:var(--text2);letter-spacing:1px;">0:00</div>
+          </div>
         </div>
       </div>
       <div class="prog-bar"><div class="prog-fill" id="pf-game" style="width:0%;background:#3B6D11;"></div></div>
@@ -868,6 +872,7 @@ function startGame(){
   document.getElementById('m-final-inn').className='metric-val';
   document.getElementById('m-avg-inn').textContent='—';
   document.getElementById('m-avg-inn').className='metric-val';
+  document.getElementById('inn-clock').textContent='0:00';
   // Rules pane
   const leagueRules=document.getElementById('setup-view').dataset.leagueRules||'';
   const leagueName=document.getElementById('setup-view').dataset.leagueName||'';
@@ -1027,6 +1032,9 @@ function updateMetrics(e){
   const tl=G.tlSecs;
   document.getElementById('g-clock').textContent=fmtS(e);
   document.getElementById('m-el').textContent=fmtS(e);
+  // Inning clock — time elapsed since current inning started
+  const innElapsed=Math.max(0,e-G.innStart);
+  document.getElementById('inn-clock').textContent=fmtS(innElapsed);
   const rem=Math.max(0,tl-e);
   document.getElementById('m-rem').textContent=fmtS(rem);
   const pct=Math.min(100,(e/tl)*100);
