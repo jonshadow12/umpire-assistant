@@ -1321,6 +1321,10 @@ function exportPDF(){
   const status=G.running?'In progress':(document.getElementById('g-status').textContent.includes('Final')?'Final':'Paused');
   const exp=G.mpi*60;
 
+  // ── Trigger Print Dialog with Delay ──
+  setTimeout(()=>window.print(), 100);
+}
+
   // Inning rows
   let innRows='';
   G.innings.forEach(inn=>{
