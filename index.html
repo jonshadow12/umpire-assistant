@@ -448,9 +448,17 @@ tr.locked td { color: var(--text3); font-style: italic; }
     <div class="run-rule-banner no-print" id="run-rule-banner">🏆 <span id="run-rule-text"></span></div>
 
     <div class="teams-row no-print">
-      <div class="team-card" id="card-away"><div class="team-lbl" id="lbl-away">Away</div><div class="team-runs" id="tot-away">0</div></div>
+      <div class="team-card" id="card-away" style="position:relative;">
+        <button onclick="editTeamName('away')" style="position:absolute;top:5px;right:6px;background:transparent;border:none;padding:0;font-size:13px;color:var(--text3);cursor:pointer;" title="Edit team name">✏</button>
+        <div class="team-lbl" id="lbl-away">Away</div>
+        <div class="team-runs" id="tot-away">0</div>
+      </div>
       <div class="vs">vs</div>
-      <div class="team-card" id="card-home"><div class="team-lbl" id="lbl-home">Home</div><div class="team-runs" id="tot-home">0</div></div>
+      <div class="team-card" id="card-home" style="position:relative;">
+        <button onclick="editTeamName('home')" style="position:absolute;top:5px;right:6px;background:transparent;border:none;padding:0;font-size:13px;color:var(--text3);cursor:pointer;" title="Edit team name">✏</button>
+        <div class="team-lbl" id="lbl-home">Home</div>
+        <div class="team-runs" id="tot-home">0</div>
+      </div>
     </div>
 
     <div class="metrics no-print" style="grid-template-columns:repeat(3,1fr);">
@@ -520,6 +528,30 @@ tr.locked td { color: var(--text3); font-style: italic; }
         </div>
       </div>
       <div class="cr-log" id="cr-log"></div>
+
+      <!-- HR Tracker -->
+      <div style="border-top:1px solid var(--border2);margin-top:10px;padding-top:10px;">
+        <div class="section-lbl" style="margin-bottom:8px;">Home runs 🏠💨</div>
+        <div class="cr-grid">
+          <div>
+            <div class="cr-team-name" id="hr-lbl-away">Away</div>
+            <div style="font-size:32px;font-weight:700;color:var(--text);margin:4px 0 6px;" id="hr-count-away">0</div>
+            <div class="cr-btns">
+              <button class="btn-green" onclick="logHR('away')" style="padding:4px 10px;font-size:12px;">💥 HR</button>
+              <button class="btn-neutral" onclick="undoHR('away')" style="padding:4px 8px;font-size:12px;">↩</button>
+            </div>
+          </div>
+          <div>
+            <div class="cr-team-name" id="hr-lbl-home">Home</div>
+            <div style="font-size:32px;font-weight:700;color:var(--text);margin:4px 0 6px;" id="hr-count-home">0</div>
+            <div class="cr-btns">
+              <button class="btn-green" onclick="logHR('home')" style="padding:4px 10px;font-size:12px;">💥 HR</button>
+              <button class="btn-neutral" onclick="undoHR('home')" style="padding:4px 8px;font-size:12px;">↩</button>
+            </div>
+          </div>
+        </div>
+        <div class="cr-log" id="hr-log"></div>
+      </div>
     </div>
 
     <div class="inn-wrap">
@@ -530,7 +562,6 @@ tr.locked td { color: var(--text3); font-style: italic; }
     </div>
 
     <div class="btn-row no-print" style="margin-bottom:12px;">
-      <button class="btn-primary" onclick="exportPDF()">⬇ Export PDF</button>
       <button class="btn-neutral" onclick="resetGame()" style="font-size:12px;">↺ Reset / new game</button>
     </div>
   </div>
@@ -614,6 +645,11 @@ tr.locked td { color: var(--text3); font-style: italic; }
     </div>
   </div>
 
+  <!-- Always-visible export button — outside all panes so it's never hidden -->
+  <div class="no-print" style="padding:4px 0 12px;text-align:center;">
+    <button class="btn-primary" id="btn-export-pdf" onclick="exportPDF()" style="width:100%;justify-content:center;padding:11px;font-size:14px;">⬇ Export PDF</button>
+  </div>
+
 </div><!-- /game-view -->
 
 <!-- ══ PAST INNING EDIT CONFIRM MODAL ══ -->
@@ -642,6 +678,21 @@ tr.locked td { color: var(--text3); font-style: italic; }
     <div class="modal-btns">
       <button class="btn-neutral" onclick="dismissResetConfirm()">Cancel</button>
       <button class="btn-red"     onclick="confirmReset()">Yes, reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TEAM NAME EDIT MODAL ══ -->
+<div class="modal-overlay" id="team-name-modal">
+  <div class="modal-box">
+    <div class="modal-icon" id="team-name-icon">✏️</div>
+    <div class="modal-title" id="team-name-title">Edit team name</div>
+    <div class="modal-body" style="text-align:left;margin-bottom:12px;">
+      <input type="text" id="team-name-input" style="width:100%;padding:10px;font-size:16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);" placeholder="Enter team name…" onkeydown="if(event.key==='Enter')confirmTeamNameEdit()">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-neutral" onclick="dismissTeamNameEdit()">Cancel</button>
+      <button class="btn-primary" onclick="confirmTeamNameEdit()">Save</button>
     </div>
   </div>
 </div>
@@ -841,7 +892,7 @@ function startGame(){
      away:document.getElementById('s-away').value||'Away',
      date:document.getElementById('s-date').value,
      startTime:null,cEn,cSecs:cMin*60,cReached:false,
-     cr,crR,crUsed:{away:0,home:0},crLog:[],notes:[],
+     cr,crR,crUsed:{away:0,home:0},crLog:[],hrLog:[],notes:[],
      mercyRuns:parseInt(document.getElementById('s-mercy').value)||6};
   for(let i=1;i<=ni;i++)G.innings.push({num:i,away:0,home:0,dur:null,started:false});
   G.innings[0].started=true;
@@ -863,7 +914,17 @@ function startGame(){
   document.getElementById('btn-start').className='btn-green';
   const showCR=cr>0;
   document.getElementById('cr-panel').style.display=showCR?'block':'none';
-  if(showCR){document.getElementById('cr-lbl-away').textContent=G.away;document.getElementById('cr-lbl-home').textContent=G.home;document.getElementById('cr-log').innerHTML='';renderCR();}
+  if(showCR){
+    document.getElementById('cr-lbl-away').textContent=G.away;
+    document.getElementById('cr-lbl-home').textContent=G.home;
+    document.getElementById('cr-log').innerHTML='';
+    document.getElementById('hr-log').innerHTML='';
+    document.getElementById('hr-lbl-away').textContent=G.away;
+    document.getElementById('hr-lbl-home').textContent=G.home;
+    document.getElementById('hr-count-away').textContent='0';
+    document.getElementById('hr-count-home').textContent='0';
+    renderCR();
+  }
   document.getElementById('note-list').innerHTML='<div class="note-empty">No notes yet — add one above.</div>';
   document.getElementById('note-input').value='';
   document.getElementById('note-badge').style.display='none';
@@ -1197,6 +1258,34 @@ function renderCR(){
   });
 }
 
+// ── Home Run tracking ──
+function logHR(team){
+  const ts = fmtS(getElapsed());
+  const wall = fmtT(new Date());
+  G.hrLog.push({team, inn: G.curInn, ts, wall});
+  renderHR();
+  const name = team === 'away' ? G.away : G.home;
+  const s = document.createElement('div');
+  s.dataset.team = team;
+  s.textContent = '💥 ' + name + ' — Inn.' + G.curInn + ' @ ' + ts;
+  document.getElementById('hr-log').appendChild(s);
+}
+function undoHR(team){
+  const idx = [...G.hrLog].reverse().findIndex(e => e.team === team);
+  if(idx === -1) return;
+  G.hrLog.splice(G.hrLog.length - 1 - idx, 1);
+  const log = document.getElementById('hr-log');
+  const kids = [...log.children].filter(c => c.dataset.team === team);
+  if(kids.length) kids[kids.length - 1].remove();
+  renderHR();
+}
+function renderHR(){
+  const awayCount = G.hrLog.filter(e => e.team === 'away').length;
+  const homeCount = G.hrLog.filter(e => e.team === 'home').length;
+  document.getElementById('hr-count-away').textContent = awayCount;
+  document.getElementById('hr-count-home').textContent = homeCount;
+}
+
 function addNote(){
   const inp=document.getElementById('note-input'),txt=inp.value.trim();if(!txt)return;
   const now=new Date();
@@ -1314,6 +1403,50 @@ function dismissResetConfirm(){
   document.getElementById('reset-confirm-modal').classList.remove('show');
 }
 
+// ── Team name editing ──
+let _editingTeam = null;
+function editTeamName(team){
+  _editingTeam = team;
+  const current = team === 'away' ? G.away : G.home;
+  document.getElementById('team-name-icon').textContent = team === 'away' ? '✈️' : '🏠';
+  document.getElementById('team-name-title').textContent = 'Edit ' + (team === 'away' ? 'away' : 'home') + ' team name';
+  const inp = document.getElementById('team-name-input');
+  inp.value = current;
+  document.getElementById('team-name-modal').classList.add('show');
+  setTimeout(() => inp.focus(), 100);
+}
+function confirmTeamNameEdit(){
+  const val = document.getElementById('team-name-input').value.trim();
+  if(!val) return;
+  if(_editingTeam === 'away'){
+    G.away = val;
+  } else {
+    G.home = val;
+  }
+  applyTeamNames();
+  document.getElementById('team-name-modal').classList.remove('show');
+  _editingTeam = null;
+}
+function dismissTeamNameEdit(){
+  document.getElementById('team-name-modal').classList.remove('show');
+  _editingTeam = null;
+}
+function applyTeamNames(){
+  // Update every place team names appear
+  document.getElementById('lbl-away').textContent = G.away;
+  document.getElementById('lbl-home').textContent = G.home;
+  document.getElementById('th-away').textContent = G.away;
+  document.getElementById('th-home').textContent = G.home;
+  document.getElementById('g-title').textContent = G.away + ' @ ' + G.home;
+  if(document.getElementById('cr-lbl-away')) document.getElementById('cr-lbl-away').textContent = G.away;
+  if(document.getElementById('cr-lbl-home')) document.getElementById('cr-lbl-home').textContent = G.home;
+  if(document.getElementById('hr-lbl-away')) document.getElementById('hr-lbl-away').textContent = G.away;
+  if(document.getElementById('hr-lbl-home')) document.getElementById('hr-lbl-home').textContent = G.home;
+  renderTable();
+  renderCR();
+  updateRunRule();
+}
+
 // ── PDF EXPORT ──
 function exportPDF(){
   const e=getElapsed();
@@ -1348,6 +1481,18 @@ function exportPDF(){
   } else if(G.cr>0){
     crHTML=`<div class="print-section"><div style="font-size:13px;font-weight:700;margin-bottom:4px;">Courtesy Runners</div>
       <div style="font-size:12px;color:#555">${G.away}: ${G.crUsed.away} used / ${G.cr} allowed &nbsp;|&nbsp; ${G.home}: ${G.crUsed.home} used / ${G.cr} allowed</div></div>`;
+  }
+
+  // HR log
+  let hrHTML='';
+  if(G.hrLog&&G.hrLog.length>0){
+    const awayHRs=G.hrLog.filter(e=>e.team==='away').length;
+    const homeHRs=G.hrLog.filter(e=>e.team==='home').length;
+    hrHTML=`<div class="print-section">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Home Runs 💥 — ${G.away}: ${awayHRs} &nbsp;|&nbsp; ${G.home}: ${homeHRs}</div>
+      <table><thead><tr><th>Team</th><th>Inning</th><th>Game Time</th><th>Clock Time</th></tr></thead><tbody>
+      ${G.hrLog.map(r=>`<tr><td>${r.team==='away'?G.away:G.home}</td><td>${r.inn}</td><td>${r.ts}</td><td>${r.wall}</td></tr>`).join('')}
+      </tbody></table></div>`;
   }
 
   // Notes
@@ -1386,6 +1531,7 @@ function exportPDF(){
       </table>
     </div>
     ${crHTML}
+    ${hrHTML}
     ${notesHTML}
   `;
 
